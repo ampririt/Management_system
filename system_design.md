@@ -325,3 +325,17 @@ To ensure the user is "wowed" at first glance, the interface uses a dark-glass d
 *   **Glassmorphism**: Cards styled with `backdrop-filter: blur(20px)` and thin semi-transparent white borders (`rgba(255, 255, 255, 0.08)`).
 *   **Interactive State Transitions**: Smooth `transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)` on hover effects for all controls.
 *   **Responsive Grid**: A multi-column dashboard layout that shrinks cleanly down to mobile screen sizes without compromising visual polish.
+*   
+
+---
+
+# Adding Funcition
+
+- [ ] Not payment option
+  - [ ] Pre-paid 30%/60%
+- [ ] Currency Exchanging Tracking 
+  - [ ] The Real Profit in YEN/DON
+  - [ ] Transaction①: YEN: buy/sell
+  - [ ] Transaction②: DON: buy/sell
+  - [ ] Transaction③: DON 
+  - [ ] Profit in YEN 

@@ -1,83 +1,106 @@
-# ProfitIntelligence — Google Apps Script Deployment
+# Finance & Trading Dashboard
 
-Standalone GAS web app backed by a Google Sheets database.
+A personal-finance and **international-trading** dashboard. It's built for a simple
+arbitrage business — **buy products in Japan (pay in ¥), resell in Vietnam (receive ₫),
+then convert ₫ back to ¥** — and reports everything as **profit in your home currency (YEN)**.
+It also tracks normal life: income, expenses, credit cards, and cash flow.
 
-## Files in this folder
+Both the home and foreign currencies are configurable in **Settings**, so it works for any
+"buy in currency A, sell in currency B at a fixed rate" setup — not just ¥/₫.
 
-| File | Type in GAS editor |
+---
+
+## Two ways to run it
+
+### A. Quick preview (no setup) — *offline demo mode*
+Just open **`app.html`** in any browser (double-click it, or drag it into Chrome).
+When it can't find the Google backend it automatically loads a **rich sample dataset**
+(several months of sales, conversions, cards, subscriptions and orders) and runs fully
+in memory. You can click around, add/edit/delete records, change currencies, etc.
+Changes last until you reload the page. This is the fastest way to *see how it works*.
+
+> A small "Demo mode" toast appears on load to confirm you're on sample data.
+
+### B. Full deployment — Google Apps Script + Google Sheets (data is saved)
+1. **Create a Google Sheet** (<https://sheets.new>) — this becomes the database.
+2. **Create an Apps Script project** (<https://script.google.com> → New project).
+3. **Add the code:**
+   - Paste `Code.gs` into the script editor's `Code.gs`.
+   - Click **＋ → HTML**, name it **`app`** (exactly), and paste in `app.html`.
+4. **Link the sheet:** in the Sheet, run the menu **🚀 ProfitIntel → Initialize / Sync Web App**
+   (or run `setupWorkbook` once from the editor). This creates all tabs and stores the
+   spreadsheet ID. Approve the authorization prompt.
+5. **(Optional) demo data:** run `seedDemoData`, or use **Settings → Reload Demo Data** in the app.
+6. **Deploy → New deployment → Web app**, *Execute as: Me*, then open the web-app URL.
+
+To update later: **Deploy → Manage deployments → Edit → New version** (URL stays the same).
+
+---
+
+## How profit is calculated (the important part)
+
+There are **two exchange rates** and keeping them apart is the whole idea:
+
+1. **Fixed selling rate** (e.g. `1 ¥ = 185 ₫`, set in Settings) — a *pricing* decision you lock in.
+2. **Actual conversion rate** — the real market rate the day you swap ₫ → ¥. It moves, and
+   you can hold ₫ and wait for a good rate.
+
+Profit (always shown in your **home/base** currency) breaks into three layers:
+
+| Layer | Meaning |
 |---|---|
-| `appsscript.json` | Manifest (enable **Project Settings → Show "appsscript.json"**) |
-| `Code.gs` | Apps Script · server-side |
-| `Index.html` | HTML · main UI (template) |
-| `Style.html` | HTML · CSS (included by Index) |
-| `JavaScript.html` | HTML · client JS (included by Index) |
+| **Trading margin @fixed** = `sales÷185 − COGS` | profit from your markup, valued at the fixed rate |
+| **Realized FX** = `Σ(¥ received − ₫ converted ÷ 185)` | gain/loss from *timing* your conversions (rate **below** 185 = gain) |
+| **Unrealized FX** = `held ₫ × (1/rate_now − 1/185)` | paper gain on ₫ still in your wallet |
 
-## One-time setup
+- **Realized net profit** = Trading margin + Realized FX
+- **Economic profit** = Realized net profit + Unrealized FX (paper gain on held ₫)
 
-1. **Create a Google Sheet** — open <https://sheets.new>, name it e.g. `ProfitIntel DB`. Copy its **Spreadsheet ID** from the URL (the long token between `/d/` and `/edit`).
+The **₫ wallet** is a running balance: every sale adds ₫, every conversion removes ₫.
+On the Trading page, set the **current market rate** to instantly see *"if I convert the whole
+wallet now, I'd receive X, total profit Y, margin Z%"*.
 
-2. **Create an Apps Script project** — open <https://script.google.com> → **New project**.
+---
 
-3. **Add the files** — in the GAS editor:
-   - Rename the default `Code.gs` and paste in the contents of `Code.gs`.
-   - Click **+ → HTML** three times and create `Index`, `Style`, `JavaScript`. Paste each file's contents (without the filename extension in the editor — GAS adds `.html` automatically).
-   - In **Project Settings**, tick **Show "appsscript.json" manifest file in editor**, then open `appsscript.json` in the editor and replace its contents with the version in this folder.
+## Pages
 
-4. **Set the spreadsheet ID** — in the GAS editor:
-   - **Project Settings → Script Properties → Add script property**
-   - Key: `SPREADSHEET_ID`  Value: *your spreadsheet ID*
-   - Save.
+| Page | What it does |
+|---|---|
+| **Home** | Cash on hand, credit available/used, trading net profit, ₫ wallet, income/expenses, best sellers, trend & expense charts |
+| **Income / Expenses** | Everyday personal ledgers |
+| **Credit Cards** | Cards with limits & balances; **charges are deferred** (no cash impact), **payments are cash outflows**. Includes **Subscriptions & Auto-Charges** (electricity, Netflix…) that auto-post each month |
+| **Trading & FX** | The profit model above: revenue/COGS/margin/FX, ₫ wallet, conversion log, rate-vs-fixed chart, profit breakdown, and the *convert-now* projection |
+| **Stock** | Products. Add a product by entering **cost (¥)** and **sell price (¥)** — the **₫ price is auto-calculated** = ¥ × fixed rate |
+| **Purchase Orders** | Workflow board: *Preparing → Delivery → Awaiting Payment → Done*. Supports **deposit + balance** (e.g. 30% prepaid, 70% on receipt) with a paid/owed progress bar. Columns with > 8 orders collapse with a **Show all** toggle |
+| **Suppliers** | Vendor directory |
+| **Cash Flow** | Inflow/outflow/net KPIs, running-balance line, 6-month bars, and a daily heatmap |
+| **P&L** | Auto-generated profit & loss from the ledger |
+| **Settings** | Base & selling **currencies**, the **fixed rate**, VAT, export, demo data, reset |
 
-5. **Initialize the workbook** — in the editor, select the function `setupWorkbook` from the dropdown next to the Run button, then click **Run**. You'll be asked to authorize the requested scopes (Sheets + UI + external requests). Approve.
+---
 
-6. **(Optional) Seed demo data** — select `seedDemoData` and click **Run**. This populates suppliers, stock, income, expenses, and POs that walk through every status (Preparing → Delivery → Not Payment → Done).
+## Common tasks
 
-7. **Deploy as Web App**:
-   - **Deploy → New deployment → Web app**
-   - Description: `ProfitIntel v1`
-   - Execute as: **User accessing the web app**
-   - Who has access: **Anyone within your domain** (or as needed)
-   - Click **Deploy**, copy the web app URL, open it.
+- **Add a product:** Stock → Add Product → enter ¥ cost and ¥ sell price → the ₫ price fills in automatically.
+- **Record a sale:** on Stock, lower a product's quantity (the `−` button). Outbound moves feed ₫ revenue, best sellers, and trading metrics.
+- **Log a currency exchange:** Trading & FX → *Convert ₫ → ¥* → enter the ₫ amount, the real rate, and any fee. The log shows gain/loss vs the fixed rate.
+- **Buy something on credit:** Credit Cards → Add Charge (this raises the card balance but doesn't touch cash). Pay it later with a *Payment* (cash outflow → shows on Cash Flow).
+- **Set up a bill/subscription:** Credit Cards → Add Auto-Charge (amount + day of month). It posts itself each month; use **Run now** to catch up.
+- **Track a customer deposit:** Purchase Orders → set a Deposit on creation, then **Pay** to record the balance; the card shows paid vs owed and flags **PAID** when settled.
+- **Change currency:** Settings → set base/selling symbols & codes and the fixed rate → Save.
 
-## Architecture summary
+---
+
+## Data model (Google Sheets tabs)
+
+`Settings`, `Income`, `Expenses`, `Stock`, `StockMoves`, `PurchaseOrders`, `POLineItems`,
+`Suppliers`, `Conversions` (₫→¥ exchanges), `CreditCards`, `CardTxns`, `Recurring`
+(auto-charges), `VATTimeline`, `AuditLog`.
 
 ```
-[ Browser ] ──google.script.run──> [ Code.gs ] ──SpreadsheetApp──> [ Sheets DB ]
+[ Browser: app.html ] ──google.script.run──> [ Code.gs ] ──SpreadsheetApp──> [ Google Sheets ]
+                       (offline demo mode if no backend)
 ```
 
-| Sheet tab | Stores |
-|---|---|
-| `Settings` | currency, VAT rate, monthly goals, min liquidity |
-| `VATTimeline` | versioned VAT rates (retroactive-safe) |
-| `Income` | income transactions |
-| `Expenses` | expense transactions |
-| `Stock` | inventory items |
-| `StockMoves` | inbound/outbound stock history |
-| `PurchaseOrders` | PO headers + status |
-| `POLineItems` | PO line items |
-| `Suppliers` | supplier master |
-| `AuditLog` | tamper-evident SHA-256 hash chain |
-
-## PO status workflow
-
-`Preparing → Delivery → Not Payment → Done` is enforced by `advancePOStatus(poId, newStatus)`:
-
-- **Delivery**: no side effect (record only)
-- **Not Payment**: stock incremented for every line item; an accrued expense row is created (affects EBIT, not cash)
-- **Done**: a paid expense row is created with correct VAT split using the rate from `VATTimeline` effective on `paidDate`
-
-## Performance notes
-
-- `getBootstrap()` returns Settings + VATTimeline + ledger + stock + POs in **one** round-trip.
-- `_vatRateForDate()` caches the timeline in `CacheService` for 5 minutes.
-- All Sheets reads use `Range.getValues()` (batched), never cell-by-cell.
-
-## Security
-
-- Web app deployed as **"User accessing the web app"** — every `AuditLog` row records the acting user's email.
-- Data never leaves your Google Workspace tenant.
-- Snapshots include a SHA-256 signature for tamper detection.
-
-## Updating
-
-Re-deploy via **Deploy → Manage deployments → ✏️ Edit → New version**. The web app URL stays the same.
+`getBootstrap()` returns the whole dataset in one round-trip and auto-posts any due
+recurring charges. Reads are batched via `Range.getValues()`.

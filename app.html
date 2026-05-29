@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Finance Dashboard</title>
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -34,6 +34,16 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
 body { background: var(--bg); color: var(--text); min-height:100vh; font-size:14px; }
+
+/* ===== Material Icons sizing (replaces boxicons) ===== */
+.material-icons { font-family:'Material Icons'; font-weight:normal; font-style:normal; font-size:1.1rem; line-height:1; vertical-align:middle; display:inline-block; text-transform:none !important; letter-spacing:normal; white-space:nowrap; word-wrap:normal; direction:ltr; -webkit-font-feature-settings:'liga'; font-feature-settings:'liga'; -webkit-font-smoothing:antialiased; }
+.nav-item .material-icons { font-size:1.2rem; }
+.btn .material-icons { font-size:1.05rem; }
+.btn.sm .material-icons, .btn.ghost.sm .material-icons { font-size:0.95rem; }
+.chip .material-icons { font-size:1rem; }
+.panel h3 .material-icons { color: var(--primary); font-size:1.15rem; }
+.kpi .lbl .material-icons { font-size:0.95rem; vertical-align:-2px; }
+.modal header h3 .material-icons { font-size:1.1rem; }
 ::-webkit-scrollbar { width:8px; height:8px; }
 ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:4px; }
 
@@ -46,9 +56,12 @@ aside.sidebar {
     position: sticky; top:0; height:100vh; overflow-y:auto;
 }
 .brand { display:flex; align-items:center; gap:0.6rem; padding: 0.4rem 0.6rem 1rem; border-bottom:1px solid var(--border); margin-bottom:0.8rem; }
-.brand .logo { width:36px; height:36px; border-radius:10px; background: var(--primary); color:#fff; display:grid; place-items:center; font-weight:800; }
-.brand h1 { font-size:0.95rem; font-weight:700; }
-.brand p { font-size:0.7rem; color:var(--muted); }
+.brand .logo { width:36px; height:36px; border-radius:10px; background: var(--primary); color:#fff; display:grid; place-items:center; font-weight:800; flex-shrink:0; }
+.brand .brand-text { min-width:0; }
+.brand h1 { font-size:0.95rem; font-weight:700; outline:none; border-radius:6px; padding:1px 4px; margin:-1px -4px; cursor:text; }
+.brand h1:hover { background: var(--surface-2); }
+.brand h1:focus { background: var(--primary-soft); box-shadow:0 0 0 2px var(--primary-soft); }
+.brand p { font-size:0.7rem; color:var(--muted); padding-left:4px; }
 .nav-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); padding:0.7rem 0.6rem 0.3rem; }
 .nav-item {
     display:flex; align-items:center; gap:0.7rem;
@@ -63,11 +76,11 @@ aside.sidebar {
 .nav-item .pill-cnt { margin-left:auto; background: var(--red-soft); color: var(--red); font-size:0.65rem; padding:1px 6px; border-radius:6px; font-weight:700; }
 
 main { padding:1.5rem 2rem; min-width:0; }
-.topbar { display:flex; align-items:center; gap:0.7rem; margin-bottom:1.5rem; flex-wrap:wrap; }
-.topbar .search { flex:1; position:relative; min-width:240px; }
-.topbar .search i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); }
+.topbar { display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.topbar .search { flex:1; position:relative; min-width:220px; display:flex; align-items:center; }
+.topbar .search .material-icons { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:1.1rem; pointer-events:none; }
 .topbar .search input {
-    width:100%; padding:0.6rem 0.9rem 0.6rem 2.3rem;
+    width:100%; padding:0.55rem 0.9rem 0.55rem 2.2rem;
     background: var(--surface); border:1px solid var(--border); border-radius:10px;
     color:var(--text); font-size:0.85rem; outline:none;
 }
@@ -75,6 +88,14 @@ main { padding:1.5rem 2rem; min-width:0; }
 .chip { display:inline-flex; align-items:center; gap:0.4rem; padding:0.45rem 0.8rem; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:0.8rem; color:var(--text-2); }
 .chip i { font-size:0.95rem; }
 .chip.alert { background: var(--red-soft); color: var(--red); border-color: transparent; }
+/* ===== Sync status chip ===== */
+.chip.sync { border-color: transparent; font-weight:600; }
+.chip.sync.synced  { background: var(--green-soft); color: var(--green); }
+.chip.sync.syncing { background: var(--blue-soft);  color: var(--blue); }
+.chip.sync.error   { background: var(--red-soft);   color: var(--red); }
+.chip.sync.demo    { background: var(--amber-soft); color: var(--amber); }
+.chip.sync.syncing .material-icons { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
 .view { display:none; }
 .view.active { display:block; animation: fade 0.2s ease; }
@@ -97,12 +118,29 @@ h2.title { font-size:1.4rem; font-weight:700; margin-bottom:0.2rem; }
 
 /* ===== Panels ===== */
 .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; box-shadow:var(--shadow-sm); margin-bottom:1.25rem; }
-.panel h3 { font-size:0.95rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+.panel h3 { font-size:0.95rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; row-gap:0.5rem; }
+
+/* ===== Charts (fixed container so they don't blow up) ===== */
+.panel > canvas, .panel canvas {
+    max-width:100% !important;
+    max-height:300px !important;
+    height:auto !important;
+}
+#trendChart, #bepChart, #forecastChart { max-height:280px !important; }
+#categoryChart { max-height:260px !important; }
+.chart-box {
+    position:relative;
+    width:100%; height:280px;
+}
+@media (max-width: 640px) {
+    .panel > canvas, .panel canvas { max-height:220px !important; }
+    .chart-box { height:220px; }
+}
 .panel h3 i { color: var(--primary); }
 .panel-actions { margin-left:auto; display:flex; gap:0.4rem; }
 
 /* ===== Buttons ===== */
-.btn { display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text); transition:all 0.15s; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:8px; font-size:0.82rem; font-weight:600; line-height:1.2; white-space:nowrap; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text); transition:all 0.15s; }
 .btn:hover { background:var(--surface-2); }
 .btn.primary { background: var(--primary); color:#fff; border-color: var(--primary); }
 .btn.primary:hover { background: #4338ca; }
@@ -134,6 +172,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 /* ===== Kanban ===== */
 .kanban { display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem; }
 .kcol { background: var(--surface-2); border:1px solid var(--border); border-radius: var(--radius); padding:0.75rem; min-height:400px; }
+.kcol .lst { max-height: 72vh; overflow-y: auto; padding-right: 2px; }
 .kcol header { display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0.4rem 0.7rem; }
 .kcol header h4 { font-size:0.8rem; display:flex; align-items:center; gap:0.5rem; font-weight:700; }
 .dot { width:8px; height:8px; border-radius:50%; }
@@ -294,31 +333,34 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 <div class="shell">
 
     <aside class="sidebar">
-        <button class="mobile-close" onclick="toggleSidebar()" aria-label="Close menu"><i class='bx bx-x'></i></button>
+        <button class="mobile-close" onclick="toggleSidebar()" aria-label="Close menu"><span class="material-icons">close</span></button>
         <div class="brand">
             <div class="logo">🌱</div>
+            <div class="brand-text">
+                <h1 id="brand-name" contenteditable="true" spellcheck="false" title="Click to rename">Profit-Intel</h1>
+                <p>Finance &amp; Trading</p>
+            </div>
         </div>
-        <div class="nav-label">Main</div>
-        <div class="nav-item active" data-view="dashboard"><i class='bx bx-home-smile'></i> Home</div>
-        <div class="nav-item" data-view="income"><i class='bx bx-trending-up'></i> Income</div>
-        <div class="nav-item" data-view="expenses"><i class='bx bx-trending-down'></i> Expenses</div>
-        <div class="nav-label">Operations</div>
-        <div class="nav-item" data-view="stock"><i class='bx bx-package'></i> Stock <span class="pill-cnt" id="badge-stock">0</span></div>
-        <div class="nav-item" data-view="po"><i class='bx bx-receipt'></i> Purchase Orders <span class="pill-cnt" id="badge-po">0</span></div>
-        <div class="nav-item" data-view="suppliers"><i class='bx bx-buildings'></i> Suppliers</div>
+        <div class="nav-label">Personal Finance</div>
+        <div class="nav-item active" data-view="dashboard"><span class="material-icons">home</span> Home</div>
+        <div class="nav-item" data-view="income"><span class="material-icons">trending_up</span> Income</div>
+        <div class="nav-item" data-view="expenses"><span class="material-icons">trending_down</span> Expenses</div>
+        <div class="nav-item" data-view="cards"><span class="material-icons">credit_card</span> Credit Cards</div>
+        <div class="nav-item" data-view="trading"><span class="material-icons">public</span> Trading &amp; FX</div>
+        <div class="nav-item" data-view="stock"><span class="material-icons">inventory_2</span> Stock <span class="pill-cnt" id="badge-stock">0</span></div>
+        <div class="nav-item" data-view="po"><span class="material-icons">receipt_long</span> Purchase Orders <span class="pill-cnt" id="badge-po">0</span></div>
+        <div class="nav-item" data-view="suppliers"><span class="material-icons">apartment</span> Suppliers</div>
         <div class="nav-label">Analysis</div>
-        <div class="nav-item" data-view="cashflow"><i class='bx bx-calendar'></i> Cash Flow</div>
-        <div class="nav-item" data-view="pl"><i class='bx bx-bar-chart-alt-2'></i> P&amp;L</div>
-        <div class="nav-item" data-view="vat"><i class='bx bx-calculator'></i> VAT Center</div>
-        <div class="nav-item" data-view="audit"><i class='bx bx-shield-quarter'></i> Audit Log</div>
+        <div class="nav-item" data-view="cashflow"><span class="material-icons">calendar_month</span> Cash Flow</div>
+        <div class="nav-item" data-view="pl"><span class="material-icons">bar_chart</span> P&amp;L</div>
         <div class="nav-label">System</div>
-        <div class="nav-item" data-view="settings"><i class='bx bx-cog'></i> Settings</div>
+        <div class="nav-item" data-view="settings"><span class="material-icons">settings</span> Settings</div>
     </aside>
 
     <main>
         <div class="topbar">
-            <button class="mobile-menu" onclick="toggleSidebar()" aria-label="Menu"><i class='bx bx-menu'></i></button>
-            <div class="search"><i class='bx bx-search'></i><input type="text" placeholder="Search products, POs, transactions…"></div>
+            <button class="mobile-menu" onclick="toggleSidebar()" aria-label="Menu"><span class="material-icons">menu</span></button>
+            <div class="search"><span class="material-icons">search</span><input type="text" placeholder="Search products, POs, transactions…"></div>
             <div class="date-filter">
                 <input type="date" id="filt-from" onchange="onDateFilterChange()">
                 <span style="color:var(--muted)">→</span>
@@ -331,9 +373,10 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                 <button class="preset-btn" onclick="setQuickPeriod('year')">Year</button>
                 <button class="preset-btn" onclick="setQuickPeriod('all')">All</button>
             </div>
-            <div class="chip"><i class='bx bx-coin-stack'></i> <span id="chip-cur">¥ JPY</span></div>
-            <div class="chip"><i class='bx bx-calculator'></i> VAT <span id="chip-vat">10</span>%</div>
-            <div class="chip alert"><i class='bx bx-bell'></i> <span id="chip-alerts">0</span></div>
+            <div class="chip"><span class="material-icons">payments</span> <span id="chip-cur">¥ JPY</span></div>
+            <div class="chip"><span class="material-icons">lock</span> <span id="chip-fx">Fixed 1¥ = 185₫</span></div>
+            <div class="chip alert"><span class="material-icons">notifications</span> <span id="chip-alerts">0</span></div>
+            <div class="chip sync" id="sync-chip" title="Sync status"><span class="material-icons" id="sync-icon">cloud_queue</span> <span id="sync-text">…</span></div>
         </div>
 
         <!-- ============ DASHBOARD ============ -->
@@ -341,34 +384,36 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <h2 class="title">👋 Welcome back!</h2>
             <p class="subtitle" id="dash-period-label">Showing data for this month</p>
             <div class="kpi-grid">
-                <div class="kpi"><div class="lbl">💰 Income</div><div class="val" id="k-inc">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
-                <div class="kpi"><div class="lbl">💳 Expenses</div><div class="val" id="k-exp">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
-                <div class="kpi accent"><div class="lbl">📈 Net Profit</div><div class="val" id="k-prof">¥0</div><div class="delta" id="k-margin">margin —</div></div>
-                <div class="kpi"><div class="lbl">🧾 VAT Net Payable</div><div class="val" id="k-vat">¥0</div><div class="delta">collected − paid</div></div>
-                <div class="kpi"><div class="lbl">📦 Inventory Value</div><div class="val" id="k-inv">¥0</div><div class="delta" id="k-inv-cnt">0 SKUs</div></div>
-                <div class="kpi"><div class="lbl">⏳ Outstanding Payables</div><div class="val" id="k-pay">¥0</div><div class="delta" id="k-pay-cnt">0 POs unpaid</div></div>
+                <div class="kpi accent"><div class="lbl"><span class="material-icons">payments</span> Cash on Hand (¥)</div><div class="val" id="k-cash">¥0</div><div class="delta" id="k-cash-sub">liquid yen</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">credit_card</span> Credit Available</div><div class="val" id="k-credit">¥0</div><div class="delta" id="k-credit-sub">¥0 used of ¥0</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">savings</span> Trading Net Profit (¥)</div><div class="val" id="k-trade">¥0</div><div class="delta" id="k-trade-sub">incl. realized FX</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">account_balance_wallet</span> VND Wallet</div><div class="val" id="k-wallet">₫0</div><div class="delta" id="k-wallet-sub">≈ ¥0 at fixed</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">trending_up</span> Income</div><div class="val" id="k-inc">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">trending_down</span> Expenses</div><div class="val" id="k-exp">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
             </div>
 
             <!-- Top 3 Best Sellers -->
             <div class="panel">
-                <h3><i class='bx bx-trophy' style="color:#f59e0b !important"></i> Top 3 Best Sellers <span style="color:var(--muted); font-weight:400; font-size:0.8rem; margin-left:0.5rem;" id="bestseller-period-label">(period)</span></h3>
+                <h3><span class="material-icons" style="color:#f59e0b !important">emoji_events</span> Top 3 Best Sellers <span style="color:var(--muted); font-weight:400; font-size:0.8rem; margin-left:0.5rem;" id="bestseller-period-label">(period)</span></h3>
                 <div class="bestseller-grid" id="best-sellers">
                     <div class="empty">Loading…</div>
                 </div>
             </div>
 
+            <!-- Suppliers ranked by total purchased -->
+            <div class="panel">
+                <h3><span class="material-icons">leaderboard</span> Suppliers by Total Purchased</h3>
+                <div class="table-wrap" id="supplier-rank"></div>
+            </div>
+
             <div class="two-col">
                 <div class="panel">
-                    <h3><i class='bx bx-line-chart'></i> Income vs Expense Trend</h3>
-                    <div style="height: 220px; position: relative;">
-                        <canvas id="trendChart"></canvas>
-                    </div>
+                    <h3><span class="material-icons">show_chart</span> Income vs Expense Trend</h3>
+                    <div class="chart-box"><canvas id="trendChart"></canvas></div>
                 </div>
                 <div class="panel">
-                    <h3><i class='bx bx-pie-chart-alt-2'></i> Expense Breakdown</h3>
-                    <div style="max-height: 220px; position: relative;">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
+                    <h3><span class="material-icons">pie_chart</span> Expense Breakdown</h3>
+                    <div class="chart-box" style="height:260px;"><canvas id="categoryChart"></canvas></div>
                 </div>
             </div>
         </section>
@@ -378,8 +423,8 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <h2 class="title">Income</h2>
             <p class="subtitle">Track all revenue transactions</p>
             <div class="panel">
-                <h3><i class='bx bx-trending-up'></i> Income Ledger
-                    <div class="panel-actions"><button class="btn primary" onclick="openIncomeModal()"><i class='bx bx-plus'></i> Add Income</button></div>
+                <h3><span class="material-icons">trending_up</span> Income Ledger
+                    <div class="panel-actions"><button class="btn primary" onclick="openIncomeModal()"><span class="material-icons">add</span> Add Income</button></div>
                 </h3>
                 <div class="table-wrap" id="income-table"></div>
             </div>
@@ -390,8 +435,8 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <h2 class="title">Expenses</h2>
             <p class="subtitle">All outgoing transactions</p>
             <div class="panel">
-                <h3><i class='bx bx-trending-down'></i> Expense Ledger
-                    <div class="panel-actions"><button class="btn primary" onclick="openExpenseModal()"><i class='bx bx-plus'></i> Add Expense</button></div>
+                <h3><span class="material-icons">trending_down</span> Expense Ledger
+                    <div class="panel-actions"><button class="btn primary" onclick="openExpenseModal()"><span class="material-icons">add</span> Add Expense</button></div>
                 </h3>
                 <div class="table-wrap" id="expense-table"></div>
             </div>
@@ -408,8 +453,8 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                 <div class="kpi"><div class="lbl">Out of Stock</div><div class="val" id="s-out">0</div></div>
             </div>
             <div class="panel">
-                <h3><i class='bx bx-package'></i> Products
-                    <div class="panel-actions"><button class="btn primary" onclick="openProductModal()"><i class='bx bx-plus'></i> Add Product</button></div>
+                <h3><span class="material-icons">inventory_2</span> Products
+                    <div class="panel-actions"><button class="btn primary" onclick="openProductModal()"><span class="material-icons">add</span> Add Product</button></div>
                 </h3>
                 <div class="table-wrap" id="stock-table"></div>
             </div>
@@ -418,21 +463,21 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
         <!-- ============ PO ============ -->
         <section class="view" id="view-po">
             <h2 class="title">Purchase Orders</h2>
-            <p class="subtitle">Workflow: Preparing → Delivery → Not Payment → Done</p>
+            <p class="subtitle">Workflow: Preparing → Delivery → Awaiting Payment → Done. Customers can prepay a deposit and pay the balance after receiving the goods — track paid vs owed here.</p>
             <div class="kpi-grid">
                 <div class="kpi"><div class="lbl">Open POs</div><div class="val" id="p-open">0</div></div>
-                <div class="kpi"><div class="lbl">Outstanding Payables</div><div class="val" id="p-pay">¥0</div></div>
+                <div class="kpi"><div class="lbl">Balance Owed</div><div class="val" id="p-pay">¥0</div><div class="delta">unpaid across orders</div></div>
                 <div class="kpi"><div class="lbl">On-Time Delivery</div><div class="val" id="p-ontime">—</div></div>
                 <div class="kpi"><div class="lbl">Total POs</div><div class="val" id="p-total">0</div></div>
             </div>
             <div class="panel">
-                <h3><i class='bx bx-receipt'></i> Workflow Board
-                    <div class="panel-actions"><button class="btn primary" onclick="openPOModal()"><i class='bx bx-plus'></i> New PO</button></div>
+                <h3><span class="material-icons">receipt_long</span> Workflow Board
+                    <div class="panel-actions"><button class="btn primary" onclick="openPOModal()"><span class="material-icons">add</span> New PO</button></div>
                 </h3>
                 <div class="kanban" id="kanban">
                     <div class="kcol" data-status="Preparing"><header><h4><span class="dot prep"></span> Preparing</h4><span class="cnt-pill" id="c-Preparing">0</span></header><div class="lst"></div></div>
                     <div class="kcol" data-status="Delivery"><header><h4><span class="dot deliv"></span> Delivery</h4><span class="cnt-pill" id="c-Delivery">0</span></header><div class="lst"></div></div>
-                    <div class="kcol" data-status="Not Payment"><header><h4><span class="dot nopay"></span> Not Payment</h4><span class="cnt-pill" id="c-NotPayment">0</span></header><div class="lst"></div></div>
+                    <div class="kcol" data-status="Not Payment"><header><h4><span class="dot nopay"></span> Awaiting Payment</h4><span class="cnt-pill" id="c-NotPayment">0</span></header><div class="lst"></div></div>
                     <div class="kcol" data-status="Done"><header><h4><span class="dot done"></span> Done</h4><span class="cnt-pill" id="c-Done">0</span></header><div class="lst"></div></div>
                 </div>
             </div>
@@ -443,8 +488,8 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <h2 class="title">Suppliers</h2>
             <p class="subtitle">Directory of vendors</p>
             <div class="panel">
-                <h3><i class='bx bx-buildings'></i> Suppliers
-                    <div class="panel-actions"><button class="btn primary" onclick="openSupplierModal()"><i class='bx bx-plus'></i> Add Supplier</button></div>
+                <h3><span class="material-icons">apartment</span> Suppliers
+                    <div class="panel-actions"><button class="btn primary" onclick="openSupplierModal()"><span class="material-icons">add</span> Add Supplier</button></div>
                 </h3>
                 <div class="table-wrap" id="supplier-table"></div>
             </div>
@@ -452,10 +497,26 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 
         <!-- ============ CASH FLOW ============ -->
         <section class="view" id="view-cashflow">
-            <h2 class="title">Cash Flow Calendar</h2>
-            <p class="subtitle">Daily net inflow / outflow</p>
+            <h2 class="title">Cash Flow</h2>
+            <p class="subtitle">Income in, expenses + card payments out. Card charges are deferred (not counted until paid).</p>
+            <div class="kpi-grid">
+                <div class="kpi"><div class="lbl"><span class="material-icons">south_west</span> Inflow (month)</div><div class="val" style="color:var(--green)" id="cf-in">¥0</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">north_east</span> Outflow (month)</div><div class="val" style="color:var(--red)" id="cf-out">¥0</div></div>
+                <div class="kpi accent"><div class="lbl"><span class="material-icons">account_balance</span> Net (month)</div><div class="val" id="cf-net">¥0</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">savings</span> End Cash Balance</div><div class="val" id="cf-end">¥0</div><div class="delta">running balance</div></div>
+            </div>
+            <div class="two-col">
+                <div class="panel">
+                    <h3><span class="material-icons">show_chart</span> Running Cash Balance (this month)</h3>
+                    <div class="chart-box"><canvas id="cfBalanceChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <h3><span class="material-icons">bar_chart</span> Inflow vs Outflow (6 months)</h3>
+                    <div class="chart-box" style="height:260px;"><canvas id="cfBarsChart"></canvas></div>
+                </div>
+            </div>
             <div class="panel">
-                <h3><i class='bx bx-calendar'></i> This Month</h3>
+                <h3><span class="material-icons">calendar_month</span> Daily Heatmap (this month)</h3>
                 <div class="heatmap" id="heatmap"></div>
             </div>
         </section>
@@ -467,47 +528,139 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <div class="panel" id="pl-panel"></div>
         </section>
 
-        <!-- ============ VAT ============ -->
-        <section class="view" id="view-vat">
-            <h2 class="title">VAT / Tax Center</h2>
+        <!-- ============ TRADING & FX ============ -->
+        <section class="view" id="view-trading">
+            <h2 class="title" id="t-title">Trading &amp; FX — Profit in YEN</h2>
+            <p class="subtitle" id="t-subtitle"></p>
+
             <div class="kpi-grid">
-                <div class="kpi"><div class="lbl">VAT Collected</div><div class="val" style="color:var(--green)" id="v-out">¥0</div></div>
-                <div class="kpi"><div class="lbl">VAT Paid</div><div class="val" style="color:var(--red)" id="v-in">¥0</div></div>
-                <div class="kpi accent"><div class="lbl">Net VAT Payable</div><div class="val" id="v-net">¥0</div></div>
+                <div class="kpi"><div class="lbl" id="t-rev-lbl">Sales Revenue</div><div class="val" id="t-rev">₫0</div><div class="delta" id="t-rev-sub">period sales</div></div>
+                <div class="kpi"><div class="lbl" id="t-cogs-lbl">COGS</div><div class="val" id="t-cogs">¥0</div><div class="delta">goods sold, at cost</div></div>
+                <div class="kpi accent"><div class="lbl" id="t-margin-lbl">Trading Margin</div><div class="val" id="t-margin">¥0</div><div class="delta" id="t-margin-sub">markup profit</div></div>
+                <div class="kpi"><div class="lbl" id="t-fx-lbl">Realized FX</div><div class="val" id="t-fx">¥0</div><div class="delta">conversion timing</div></div>
+                <div class="kpi"><div class="lbl" id="t-wallet-lbl">Wallet</div><div class="val" id="t-wallet">₫0</div><div class="delta" id="t-wallet-sub">held, not converted</div></div>
+                <div class="kpi"><div class="lbl" id="t-unreal-lbl">Unrealized FX</div><div class="val" id="t-unreal">¥0</div><div class="delta" id="t-unreal-sub">on held funds at rate now</div></div>
+            </div>
+
+            <div class="panel" style="border:1px solid var(--primary-soft); background:var(--primary-soft);">
+                <h3 style="margin-bottom:0.5rem"><span class="material-icons">account_balance_wallet</span> Net Profit (<span id="t-base-code">YEN</span>)</h3>
+                <div style="display:flex; flex-wrap:wrap; gap:1.5rem; align-items:flex-end;">
+                    <div>
+                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Realized net profit</div>
+                        <div id="t-net-real" style="font-size:1.9rem; font-weight:800; color:var(--primary);">¥0</div>
+                        <div style="font-size:0.72rem; color:var(--text-2);">Trading margin + Realized FX</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">+ Unrealized = Economic profit</div>
+                        <div id="t-net-econ" style="font-size:1.3rem; font-weight:700; color:var(--text);">¥0</div>
+                        <div style="font-size:0.72rem; color:var(--text-2);">includes paper gain on held funds</div>
+                    </div>
+                    <div style="margin-left:auto;">
+                        <label id="t-rate-lbl" style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block;">Current market rate</label>
+                        <input id="t-rate-now" type="number" min="1" step="any" onchange="renderTrading()"
+                               style="margin-top:0.3rem; padding:0.5rem 0.7rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:140px; font-family:inherit;">
+                        <div id="t-rate-hint" style="font-size:0.72rem; color:var(--text-2);">lower than fixed = good time to convert</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- "What if I convert now?" projection -->
+            <div class="panel" style="border-left:4px solid var(--green);">
+                <h3 style="margin-bottom:0.4rem"><span class="material-icons">lightbulb</span> If you convert your whole wallet now…</h3>
+                <div id="t-whatif" style="font-size:0.92rem; color:var(--text-2); line-height:1.7;"></div>
+                <div style="display:flex; flex-wrap:wrap; gap:2rem; margin-top:0.7rem;">
+                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">You'd receive</div><div id="t-wi-receive" style="font-size:1.4rem; font-weight:800; color:var(--text);">¥0</div></div>
+                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Total realized profit</div><div id="t-wi-total" style="font-size:1.4rem; font-weight:800; color:var(--primary);">¥0</div></div>
+                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Profit margin</div><div id="t-wi-pct" style="font-size:1.4rem; font-weight:800; color:var(--green);">0%</div></div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="panel">
+                    <h3><span class="material-icons">show_chart</span> <span id="t-fxchart-title">Conversion Rate vs Fixed</span></h3>
+                    <div class="chart-box"><canvas id="fxChart"></canvas></div>
+                </div>
+                <div class="panel">
+                    <h3><span class="material-icons">pie_chart</span> Profit Breakdown</h3>
+                    <div class="chart-box" style="height:260px;"><canvas id="profitChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3><span class="material-icons">swap_horiz</span> <span id="t-convlog-title">Currency Exchange Log</span>
+                    <div class="panel-actions"><button class="btn primary" onclick="openConversionModal()"><span class="material-icons">add</span> <span id="t-conv-btn">Convert → base</span></button></div>
+                </h3>
+                <div class="table-wrap" id="conv-table"></div>
             </div>
         </section>
 
-        <!-- ============ AUDIT LOG ============ -->
-        <section class="view" id="view-audit">
-            <h2 class="title">Audit Log</h2>
-            <p class="subtitle">Tamper-evident SHA-256 hash chain of every change</p>
+        <!-- ============ CREDIT CARDS ============ -->
+        <section class="view" id="view-cards">
+            <h2 class="title">Credit Cards</h2>
+            <p class="subtitle">Charges are deferred (no cash impact). Payments are cash outflows and show up on the Cash Flow calendar.</p>
+            <div class="kpi-grid">
+                <div class="kpi"><div class="lbl">Total Outstanding</div><div class="val" id="cc-bal">¥0</div><div class="delta" id="cc-bal-sub">across all cards</div></div>
+                <div class="kpi"><div class="lbl">Credit Limit</div><div class="val" id="cc-limit">¥0</div><div class="delta" id="cc-util">0% utilised</div></div>
+                <div class="kpi"><div class="lbl">Charged (period)</div><div class="val" style="color:var(--red)" id="cc-charged">¥0</div></div>
+                <div class="kpi"><div class="lbl">Paid (period)</div><div class="val" style="color:var(--green)" id="cc-paid">¥0</div></div>
+            </div>
             <div class="panel">
-                <h3><i class='bx bx-shield-quarter'></i> Recent Changes
-                    <div class="panel-actions"><button class="btn" onclick="loadAudit()"><i class='bx bx-refresh'></i> Refresh</button></div>
+                <h3><span class="material-icons">credit_card</span> My Cards
+                    <div class="panel-actions"><button class="btn primary" onclick="openCardModal()"><span class="material-icons">add</span> Add Card</button></div>
                 </h3>
-                <div class="table-wrap" id="audit-table"><div class="empty">Click Refresh to load.</div></div>
+                <div id="cards-grid" class="bestseller-grid"></div>
+            </div>
+            <div class="panel">
+                <h3><span class="material-icons">autorenew</span> Subscriptions &amp; Auto-Charges
+                    <div class="panel-actions">
+                        <button class="btn" onclick="runRecurringNow()"><span class="material-icons">play_arrow</span> Run now</button>
+                        <button class="btn primary" onclick="openRecurringModal()"><span class="material-icons">add</span> Add Auto-Charge</button>
+                    </div>
+                </h3>
+                <p class="subtitle" style="margin-bottom:0.8rem">Bills like electricity or Netflix post to the card automatically each month on their due day.</p>
+                <div class="table-wrap" id="recurring-table"></div>
+            </div>
+            <div class="panel">
+                <h3><span class="material-icons">list</span> Card Transactions
+                    <div class="panel-actions"><button class="btn primary" onclick="openCardTxnModal()"><span class="material-icons">add</span> Add Charge / Payment</button></div>
+                </h3>
+                <div class="table-wrap" id="cardtxn-table"></div>
             </div>
         </section>
 
         <!-- ============ SETTINGS ============ -->
         <section class="view" id="view-settings">
             <h2 class="title">Settings</h2>
-            <p class="subtitle">Currency, VAT rate, data management</p>
+            <p class="subtitle">Currencies, fixed rate, VAT, data management</p>
             <div class="two-col">
                 <div class="panel">
-                    <h3><i class='bx bx-cog'></i> Configuration</h3>
-                    <div class="form-row"><label>Currency Symbol</label><input id="set-sym" value="¥"></div>
-                    <br><div class="form-row"><label>Currency Code</label><input id="set-code" value="JPY"></div>
+                    <h3><span class="material-icons">settings</span> Configuration</h3>
+                    <div class="form-grid-2">
+                        <div class="form-row"><label>Base / Home Currency Symbol</label><input id="set-sym" value="¥"></div>
+                        <div class="form-row"><label>Base Currency Code</label><input id="set-code" value="JPY"></div>
+                    </div>
+                    <br><div class="form-grid-2">
+                        <div class="form-row"><label>Selling Currency Symbol</label><input id="set-fsym" value="₫"></div>
+                        <div class="form-row"><label>Selling Currency Code</label><input id="set-fcode" value="VND"></div>
+                    </div>
+                    <br><div class="form-row">
+                        <label>🔒 Fixed Selling Rate — selling units per <strong>1</strong> base</label>
+                        <input id="set-fixed" type="number" value="185" min="0.0001" step="any">
+                        <small style="color:var(--muted); font-size:0.72rem; margin-top:0.25rem" id="set-fixed-hint">
+                            e.g. 1 ¥ = 185 ₫. Used to value foreign sales in your base currency and as the
+                            baseline each real conversion is compared against on the Trading page.
+                        </small>
+                    </div>
                     <br><div class="form-row"><label>VAT Rate (%)</label><input id="set-vat" type="number" value="10" min="0" max="30" step="0.5"></div>
-                    <br><button class="btn primary" onclick="saveSettings()"><i class='bx bx-save'></i> Save Settings</button>
+                    <br><button class="btn primary" onclick="saveSettings()"><span class="material-icons">save</span> Save Settings</button>
                 </div>
                 <div class="panel">
-                    <h3><i class='bx bx-data'></i> Data Management</h3>
-                    <button class="btn" onclick="exportJSON()"><i class='bx bx-export'></i> Export JSON</button><br><br>
-                    <button class="btn" onclick="document.getElementById('imp-file').click()"><i class='bx bx-import'></i> Import JSON</button>
+                    <h3><span class="material-icons">storage</span> Data Management</h3>
+                    <button class="btn" onclick="exportJSON()"><span class="material-icons">file_upload</span> Export JSON</button><br><br>
+                    <button class="btn" onclick="document.getElementById('imp-file').click()"><span class="material-icons">file_download</span> Import JSON</button>
                     <input type="file" id="imp-file" style="display:none" accept=".json" onchange="importJSON(event)"><br><br>
-                    <button class="btn" onclick="seedDemo()"><i class='bx bx-cylinder'></i> Reload Demo Data</button><br><br>
-                    <button class="btn danger" onclick="resetAll()"><i class='bx bx-trash'></i> Reset All Data</button>
+                    <button class="btn" onclick="seedDemo()"><span class="material-icons">dataset</span> Reload Demo Data</button><br><br>
+                    <button class="btn danger" onclick="resetAll()"><span class="material-icons">delete</span> Reset All Data</button>
                 </div>
             </div>
         </section>
@@ -518,7 +671,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 <!-- ===== Modals ===== -->
 <div class="modal-bg" id="modal">
     <div class="modal">
-        <header><h3 id="m-title">Title</h3><button class="btn ghost" onclick="closeModal()"><i class='bx bx-x' style="font-size:1.2rem"></i></button></header>
+        <header><h3 id="m-title">Title</h3><button class="btn ghost" onclick="closeModal()"><span class="material-icons" style="font-size:1.2rem">close</span></button></header>
         <div class="body" id="m-body"></div>
         <footer>
             <button class="btn" onclick="closeModal()">Cancel</button>
@@ -534,23 +687,154 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 // STATE — hydrated from Google Sheets via google.script.run
 // ============================================================
 let STATE = {
-    settings: { currencySymbol:'¥', currencyCode:'JPY', vatRate:10, monthlyIncomeGoal:0, monthlyProfitGoal:0, minLiquidity:0 },
+    settings: { currencySymbol:'¥', currencyCode:'JPY', vatRate:10, monthlyIncomeGoal:0, monthlyProfitGoal:0, minLiquidity:0, fixedRateVND:185, foreignSymbol:'₫', foreignCode:'VND' },
     vatTimeline: [],
     income: [], expenses: [],
     stock: [], stockMoves: [], pos: [], poLines: [],
-    suppliers: []
+    suppliers: [],
+    conversions: [], creditCards: [], cardTxns: [], recurring: []
 };
 let BUSY = false;
+
+// ============================================================
+// OFFLINE DEMO MODE
+// When opened outside Google Apps Script (no google.script.run), the app runs
+// fully in-memory off a rich mock dataset so it can be previewed in any browser.
+// ============================================================
+const DEMO = (typeof google === 'undefined' || !google.script || !google.script.run);
+const uuid = () => 'id-' + Math.random().toString(36).slice(2,10);
+const clone = o => JSON.parse(JSON.stringify(o));
+const isoDaysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+const isoMonthDay = (monthsAgo, day) => { const d=new Date(); d.setMonth(d.getMonth()-monthsAgo); d.setDate(day); return d.toISOString().slice(0,10); };
+function splitVatJS(gross, applicable, rate) { if (!applicable) return {amountVat:0, amountNet:gross}; const v=gross*(rate/(100+rate)); return {amountVat:Math.round(v), amountNet:Math.round(gross-v)}; }
+
+function buildMock() {
+    const vat = 10, FX = 185;
+    const inc = (date,desc,client,cat,gross,app=false) => Object.assign({id:uuid(),date,description:desc,client,category:cat,amountGross:gross,isVatApplicable:app},splitVatJS(gross,app,vat));
+    const exp = (date,desc,vendor,cat,ct,gross,app=true) => Object.assign({id:uuid(),date,description:desc,vendor,category:cat,costType:ct,amountGross:gross,isVatApplicable:app,linkedPOId:''},splitVatJS(gross,app,vat));
+    const mv = (sku,date,delta,reason) => ({moveId:uuid(),sku,date,qtyDelta:delta,reason,refId:'',user:'demo'});
+
+    // unitCost = ¥ paid in Japan; unitPrice = FOREIGN (₫) sell price = (yen sell price) × FX
+    const stock = [
+        {sku:'JP-CAM01',name:'Used Mirrorless Camera',category:'Finished Good',unit:'pcs',quantityOnHand:6,reorderPoint:3,reorderQuantity:5,unitCost:42000,unitPrice:60000*FX,supplierId:'SUP-001',lastInboundDate:isoDaysAgo(40),lastOutboundDate:isoDaysAgo(2)},
+        {sku:'JP-WAT02',name:'Vintage Seiko Watch',category:'Finished Good',unit:'pcs',quantityOnHand:9,reorderPoint:4,reorderQuantity:8,unitCost:18000,unitPrice:27000*FX,supplierId:'SUP-002',lastInboundDate:isoDaysAgo(38),lastOutboundDate:isoDaysAgo(3)},
+        {sku:'JP-SKN03',name:'Shiseido Skincare Set',category:'Finished Good',unit:'box',quantityOnHand:34,reorderPoint:10,reorderQuantity:20,unitCost:6500,unitPrice:9500*FX,supplierId:'SUP-001',lastInboundDate:isoDaysAgo(30),lastOutboundDate:isoDaysAgo(1)}
+    ];
+
+    const stockMoves = [
+        mv('JP-CAM01', isoDaysAgo(70), 8, 'PO-Receipt'), mv('JP-WAT02', isoDaysAgo(68), 14, 'PO-Receipt'), mv('JP-SKN03', isoDaysAgo(66), 50, 'PO-Receipt'),
+        mv('JP-CAM01', isoMonthDay(2,10), -1, 'Sale'), mv('JP-WAT02', isoMonthDay(2,14), -2, 'Sale'), mv('JP-SKN03', isoMonthDay(2,20), -6, 'Sale'),
+        mv('JP-CAM01', isoMonthDay(1,8), -1, 'Sale'), mv('JP-WAT02', isoMonthDay(1,16), -2, 'Sale'), mv('JP-SKN03', isoMonthDay(1,24), -5, 'Sale'),
+        mv('JP-CAM01', isoDaysAgo(2), -1, 'Sale'), mv('JP-WAT02', isoDaysAgo(3), -1, 'Sale'), mv('JP-SKN03', isoDaysAgo(1), -5, 'Sale')
+    ];
+    const income = [
+        inc(isoMonthDay(2,25),'Salary','Day job','Services',280000),
+        inc(isoMonthDay(1,25),'Salary','Day job','Services',280000),
+        inc(isoMonthDay(0,25),'Salary','Day job','Services',280000),
+        inc(isoDaysAgo(12),'Freelance design','Acme','Services',95000,true)
+    ];
+    const expenses = [
+        exp(isoMonthDay(2,1),'Rent','Landlord','Rent','Fixed',85000),
+        exp(isoMonthDay(1,1),'Rent','Landlord','Rent','Fixed',85000),
+        exp(isoMonthDay(0,1),'Rent','Landlord','Rent','Fixed',85000),
+        exp(isoDaysAgo(70),'Camera stock (Japan)','Yodobashi','Raw Materials','COGS',336000),
+        exp(isoDaysAgo(18),'Shipping to Vietnam','Yamato','Travel','Variable',24000),
+        exp(isoDaysAgo(6),'Groceries','Supermarket','Other','Variable',18500)
+    ];
+    const conversions = [
+        {id:uuid(),date:isoMonthDay(2,18),vndAmount:9000000,rate:188,fee:2500,jpyReceived:Math.round(9000000/188),note:'First batch — slightly worse than fixed'},
+        {id:uuid(),date:isoMonthDay(1,15),vndAmount:12000000,rate:179,fee:3000,jpyReceived:Math.round(12000000/179),note:'VND strong — good rate'},
+        {id:uuid(),date:isoDaysAgo(8),vndAmount:7000000,rate:176,fee:2000,jpyReceived:Math.round(7000000/176),note:'Best rate so far'}
+    ];
+    const cardId = 'CARD-RAK';
+    const creditCards = [{cardId,name:'Rakuten Card',issuer:'Rakuten',creditLimit:500000,statementDay:27,dueDay:10,openingBalance:0}];
+    const cardTxns = [
+        {id:uuid(),cardId,date:isoDaysAgo(70),type:'charge',amount:60000,category:'Goods Purchase',description:'Bought camera stock on credit'},
+        {id:uuid(),cardId,date:isoDaysAgo(40),type:'charge',amount:23000,category:'Dining',description:'Restaurant'},
+        {id:uuid(),cardId,date:isoMonthDay(1,5),type:'charge',amount:1980,category:'Subscription',description:'[Auto] Netflix'},
+        {id:uuid(),cardId,date:isoMonthDay(0,5),type:'charge',amount:1980,category:'Subscription',description:'[Auto] Netflix'},
+        {id:uuid(),cardId,date:isoMonthDay(1,25),type:'charge',amount:8500,category:'Utilities',description:'[Auto] Electricity Bill'},
+        {id:uuid(),cardId,date:isoDaysAgo(15),type:'payment',amount:50000,category:'Other',description:'Card payment'}
+    ];
+    const lastM = new Date().toISOString().slice(0,7);
+    const recurring = [
+        {id:uuid(),cardId,name:'Netflix',category:'Subscription',amount:1980,dayOfMonth:5,active:true,lastPosted:lastM},
+        {id:uuid(),cardId,name:'Electricity Bill',category:'Utilities',amount:8500,dayOfMonth:25,active:true,lastPosted:''}
+    ];
+    // Orders with deposit / balance tracking
+    const mkPO = (poId,sku,qty,cost,status,paid,daysAgo,dueDays) => {
+        const sub = qty*cost, vatA = Math.round(sub*vat/100), total = sub+vatA;
+        return {poId,supplierId:'SUP-001',supplierName:'Yodobashi Camera',orderDate:isoDaysAgo(daysAgo),expectedDate:isoDaysAgo(daysAgo-7),actualDeliveryDate: status==='Done'||status==='Not Payment'?isoDaysAgo(daysAgo-7):'',currency:'JPY',fxRate:1,subtotal:sub,vatAmount:vatA,totalGross:total,status,paymentDueDate:isoDaysAgo(daysAgo-dueDays),paidDate: paid>=total?isoDaysAgo(daysAgo-10):'',notes:'',paidAmount:paid,
+            lineItems:[{poId,sku,quantity:qty,unitCost:cost,vatApplicable:true}]};
+    };
+    const pos = [
+        mkPO('PO-1001','JP-CAM01',5,42000,'Not Payment',Math.round(5*42000*1.1*0.3),20,30), // 30% deposit, balance owed
+        mkPO('PO-1002','JP-SKN03',20,6500,'Done',Math.round(20*6500*1.1),55,30),               // fully paid
+        mkPO('PO-1003','JP-WAT02',8,18000,'Delivery',0,8,30)                                    // in transit, nothing paid
+    ];
+    const poLines = pos.flatMap(p=>p.lineItems);
+
+    return {
+        ok:true,
+        settings:{currencySymbol:'¥',currencyCode:'JPY',vatRate:vat,monthlyIncomeGoal:300000,monthlyProfitGoal:120000,minLiquidity:100000,fixedRateVND:FX,foreignSymbol:'₫',foreignCode:'VND'},
+        vatTimeline:[], income, expenses, stock, stockMoves, pos, poLines, suppliers:[
+            {supplierId:'SUP-001',name:'Yodobashi Camera',contact:'wholesale@yodobashi.jp',paymentTermsDays:0,rating:'A+'},
+            {supplierId:'SUP-002',name:'Mercari Japan',contact:'orders@mercari.jp',paymentTermsDays:0,rating:'A'}
+        ],
+        conversions, creditCards, cardTxns, recurring
+    };
+}
+
+// In-memory implementation of the server API for DEMO mode.
+function demoSrv(fn, a, onDone) {
+    const S = STATE; const done = r => { if (onDone) onDone(r); else renderAll(); };
+    const byId = (arr,k,v)=>arr.findIndex(x=>String(x[k])===String(v));
+    const upsert = (arr,k,row)=>{ const i=byId(arr,k,row[k]); if(i>=0) arr[i]=Object.assign({},arr[i],row); else arr.push(row); };
+    const vat = Number(S.settings.vatRate)||10;
+    switch(fn) {
+        case 'saveIncome': { const t=a[0]; const row=Object.assign({id:t.id||uuid()},t,splitVatJS(Number(t.amountGross),t.isVatApplicable!==false,vat)); if(t.id){const i=byId(S.income,'id',t.id); if(i>=0)S.income[i]=row; else S.income.push(row);} else S.income.push(row); break; }
+        case 'deleteIncome': S.income=S.income.filter(x=>x.id!==a[0]); break;
+        case 'saveExpense': { const t=a[0]; const row=Object.assign({id:t.id||uuid()},t,splitVatJS(Number(t.amountGross),t.isVatApplicable!==false,vat)); if(t.id){const i=byId(S.expenses,'id',t.id); if(i>=0)S.expenses[i]=row; else S.expenses.push(row);} else S.expenses.push(row); break; }
+        case 'deleteExpense': S.expenses=S.expenses.filter(x=>x.id!==a[0]); break;
+        case 'upsertStockItem': upsert(S.stock,'sku',a[0]); break;
+        case 'deleteStockItem': S.stock=S.stock.filter(x=>x.sku!==a[0]); break;
+        case 'adjustStock': { const it=S.stock.find(x=>x.sku===a[0]); if(it){ it.quantityOnHand=Number(it.quantityOnHand)+Number(a[1]); S.stockMoves.push({moveId:uuid(),sku:a[0],date:todayISO(),qtyDelta:Number(a[1]),reason:a[2]||'Manual',refId:a[3]||'',user:'demo'}); } break; }
+        case 'setStockQty': { const it=S.stock.find(x=>x.sku===a[0]); if(it){ const d=Number(a[1])-Number(it.quantityOnHand); it.quantityOnHand=Number(a[1]); if(d) S.stockMoves.push({moveId:uuid(),sku:a[0],date:todayISO(),qtyDelta:d,reason:'Manual',refId:'',user:'demo'}); } break; }
+        case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let sub=0,vatA=0; li.forEach(l=>{const lt=Number(l.quantity)*Number(l.unitCost); sub+=lt; if(l.vatApplicable) vatA+=lt*vat/100;}); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',currency:'JPY',fxRate:1,subtotal:Math.round(sub),vatAmount:Math.round(vatA),totalGross:Math.round(sub+vatA),status:'Preparing',paymentDueDate:po.paymentDueDate||'',paidDate:'',notes:po.notes||'',paidAmount:Math.round(Number(po.depositAmount)||0),lineItems:li.map(l=>({poId,sku:l.sku,quantity:l.quantity,unitCost:l.unitCost,vatApplicable:!!l.vatApplicable}))}; S.pos.push(header); li.forEach(l=>S.poLines.push({poId,sku:l.sku,quantity:l.quantity,unitCost:l.unitCost,vatApplicable:!!l.vatApplicable})); break; }
+        case 'advancePOStatus': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.status=a[1]; if(a[1]==='Not Payment'){ po.actualDeliveryDate=todayISO(); (po.lineItems||[]).forEach(l=>{const it=S.stock.find(x=>x.sku===l.sku); if(it) it.quantityOnHand=Number(it.quantityOnHand)+Number(l.quantity);}); } if(a[1]==='Done'){ po.paidDate=todayISO(); } } break; }
+        case 'recordPOPayment': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.paidAmount=(Number(po.paidAmount)||0)+(Number(a[1])||0); if(po.paidAmount>=Number(po.totalGross)&&!po.paidDate) po.paidDate=todayISO(); } break; }
+        case 'updatePO': { const id=a[0].poId; S.pos=S.pos.filter(p=>p.poId!==id); S.poLines=S.poLines.filter(l=>l.poId!==id); return demoSrv('createPO',a,onDone); }
+        case 'deletePO': S.pos=S.pos.filter(p=>p.poId!==a[0]); S.poLines=S.poLines.filter(l=>l.poId!==a[0]); break;
+        case 'upsertSupplier': upsert(S.suppliers,'supplierId',a[0]); break;
+        case 'deleteSupplier': S.suppliers=S.suppliers.filter(x=>x.supplierId!==a[0]); break;
+        case 'saveConversion': { const t=a[0]; const rate=Number(t.rate)||0; const row=Object.assign({},t,{id:t.id||uuid(),jpyReceived:rate>0?Math.round(Number(t.vndAmount)/rate):0}); if(t.id){const i=byId(S.conversions,'id',t.id); if(i>=0)S.conversions[i]=row; else S.conversions.push(row);} else S.conversions.push(row); break; }
+        case 'deleteConversion': S.conversions=S.conversions.filter(x=>x.id!==a[0]); break;
+        case 'upsertCreditCard': { const c=a[0]; if(!c.cardId)c.cardId=uuid(); upsert(S.creditCards,'cardId',c); done(c); return; }
+        case 'deleteCreditCard': S.creditCards=S.creditCards.filter(x=>x.cardId!==a[0]); S.cardTxns=S.cardTxns.filter(t=>t.cardId!==a[0]); break;
+        case 'addCardTxn': S.cardTxns.push(Object.assign({id:uuid()},a[0])); break;
+        case 'deleteCardTxn': S.cardTxns=S.cardTxns.filter(x=>x.id!==a[0]); break;
+        case 'upsertRecurring': { const r=a[0]; if(!r.id)r.id=uuid(); upsert(S.recurring,'id',r); done(r); return; }
+        case 'deleteRecurring': S.recurring=S.recurring.filter(x=>x.id!==a[0]); break;
+        case 'postDueRecurring': done({posted:0}); return;
+        case 'updateSettings': S.settings=Object.assign({},S.settings,a[0]); break;
+        case 'seedDemoData': STATE=Object.assign(STATE, buildMock()); break;
+        case 'resetAllData': ['income','expenses','stock','stockMoves','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k=>S[k]=[]); break;
+        case 'exportSnapshot': done(clone(S)); return;
+        default: break;
+    }
+    done({ok:true});
+}
 
 // ============================================================
 // SERVER CALLER
 // ============================================================
 function srv(fn, args, onDone, onErr) {
-    setBusy(true);
     const a = args || [];
+    if (DEMO) { setSyncStatus('demo'); try { demoSrv(fn, a, onDone || refresh); } catch(e){ console.error(e); toast('Demo error: '+e.message,'error'); } return; }
+    setBusy(true); setSyncStatus('syncing');
     const runner = google.script.run
-        .withSuccessHandler(res => { setBusy(false); (onDone || refresh)(res); })
-        .withFailureHandler(err => { setBusy(false); console.error('srv('+fn+') failed:', err); toast(err.message || 'Server error', 'error'); if (onErr) onErr(err); });
+        .withSuccessHandler(res => { setBusy(false); setSyncStatus('synced'); (onDone || refresh)(res); })
+        .withFailureHandler(err => { setBusy(false); setSyncStatus('error', err && (err.message||err)); console.error('srv('+fn+') failed:', err); toast(err.message || 'Server error', 'error'); if (onErr) onErr(err); });
     // google.script.run is a Proxy — must invoke with call syntax, not .apply()
     runner[fn](a[0], a[1], a[2], a[3]);
 }
@@ -558,12 +842,43 @@ function setBusy(b) {
     BUSY = b;
     document.body.style.cursor = b ? 'progress' : '';
 }
+// ============================================================
+// SYNC STATUS INDICATOR
+// ============================================================
+function setSyncStatus(state, detail) {
+    const chip = document.getElementById('sync-chip');
+    const icon = document.getElementById('sync-icon');
+    const text = document.getElementById('sync-text');
+    if (!chip) return;
+    chip.classList.remove('synced','syncing','error','demo');
+    chip.classList.add(state);
+    const now = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    if (state === 'syncing') { icon.textContent = 'sync'; text.textContent = 'Syncing…'; chip.title = 'Talking to Google Sheets…'; }
+    else if (state === 'synced') { icon.textContent = 'cloud_done'; text.textContent = 'Synced ' + now; chip.title = 'Last synced with Google Sheets at ' + now; }
+    else if (state === 'error') { icon.textContent = 'cloud_off'; text.textContent = 'Not synced'; chip.title = 'Sync failed: ' + (detail || 'cannot reach server') + ' — click to retry'; }
+    else if (state === 'demo') { icon.textContent = 'science'; text.textContent = 'Demo (offline)'; chip.title = 'Offline demo mode — sample data, not saved to Google Sheets'; }
+}
 function refresh() {
+    if (DEMO) {
+        if (!STATE.__seeded) { STATE = Object.assign(STATE, buildMock()); STATE.__seeded = true; }
+        ['vatTimeline','income','expenses','stock','stockMoves','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
+        setSyncStatus('demo');
+        renderAll();
+        return;
+    }
+    setSyncStatus('syncing');
     google.script.run
         .withSuccessHandler(data => {
             console.log('[refresh] received:', data);
+            if (data && data.ok === false && data.error) {
+                console.error('[refresh] getBootstrap error:', data.error);
+                setSyncStatus('error', data.error);
+                toast(data.error, 'error');
+                return;
+            }
             if (!data || !data.ok) {
                 console.warn('[refresh] getBootstrap returned null/invalid → running ping() to verify server …');
+                setSyncStatus('error', 'getBootstrap returned no data');
                 google.script.run
                     .withSuccessHandler(p => {
                         console.log('[ping]:', p);
@@ -578,12 +893,13 @@ function refresh() {
                 return;
             }
             STATE = Object.assign(STATE, data);
-            ['vatTimeline','income','expenses','stock','stockMoves','pos','poLines','suppliers'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
+            ['vatTimeline','income','expenses','stock','stockMoves','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
             if (!STATE.settings) STATE.settings = { currencySymbol:'¥', currencyCode:'JPY', vatRate:10 };
             console.log('[refresh] STATE counts: stock='+STATE.stock.length+' pos='+STATE.pos.length+' suppliers='+STATE.suppliers.length+' income='+STATE.income.length+' expenses='+STATE.expenses.length+' stockMoves='+STATE.stockMoves.length);
+            setSyncStatus('synced');
             renderAll();
         })
-        .withFailureHandler(err => { console.error('[refresh] failed:', err); toast('Bootstrap failed: ' + (err.message||err),'error'); })
+        .withFailureHandler(err => { console.error('[refresh] failed:', err); setSyncStatus('error', err && (err.message||err)); toast('Bootstrap failed: ' + (err.message||err),'error'); })
         .getBootstrap();
 }
 
@@ -591,7 +907,15 @@ function refresh() {
 // HELPERS
 // ============================================================
 const uid = (p='ID') => p + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
-const fmt = v => (STATE.settings.currencySymbol||'¥') + Math.round(Number(v)||0).toLocaleString();
+// Base (home) currency, e.g. ¥ JPY
+const baseSym = () => STATE.settings.currencySymbol || '¥';
+const baseCode = () => STATE.settings.currencyCode || 'JPY';
+// Foreign (selling-market) currency, e.g. ₫ VND
+const fxSym = () => STATE.settings.foreignSymbol || '₫';
+const fxCode = () => STATE.settings.foreignCode || 'VND';
+const fmt = v => baseSym() + Math.round(Number(v)||0).toLocaleString();      // base currency
+const fmtVnd = v => fxSym() + Math.round(Number(v)||0).toLocaleString();      // foreign currency
+const fixedRate = () => Number(STATE.settings.fixedRateVND) || 185;          // foreign units per 1 base
 const todayISO = () => new Date().toISOString().slice(0,10);
 
 // User-controlled date filter — defaults to current month (real-world clock).
@@ -779,53 +1103,67 @@ function delExpense(id) { if (!confirm('Delete?')) return; srv('deleteExpense', 
 // PRODUCT (STOCK)
 // ============================================================
 function openProductModal(existing) {
-    const p = existing || { sku:uid('SKU'), name:'', category:'Finished Good', unit:'pcs', quantityOnHand:0, reorderPoint:10, reorderQuantity:50, unitCost:0, unitPrice:0, supplierId:'' };
+    const p = existing || { sku:uid('SKU'), name:'', category:'Finished Good', unit:'pcs', quantityOnHand:0, reorderPoint:0, reorderQuantity:0, unitCost:0, unitPrice:0, supplierId:'' };
+    const costYen = Number(p.unitCost) || 0;                          // what you PAY in Japan (base ¥)
+    const sellYen = p.unitPrice ? (Number(p.unitPrice) / fixedRate()) : 0;  // your sell price in base ¥
     const supOpts = ['<option value="">— none —</option>']
         .concat(STATE.suppliers.map(s => `<option value="${s.supplierId}" ${p.supplierId===s.supplierId?'selected':''}>${s.name}</option>`)).join('');
     const html = `
+        <div class="form-row"><label>Product Name</label><input id="p-name" value="${p.name}"></div>
         <div class="form-grid-2">
-            <div class="form-row"><label>SKU</label><input id="p-sku" value="${p.sku}" ${existing?'readonly':''}></div>
-            <div class="form-row"><label>Product Name</label><input id="p-name" value="${p.name}"></div>
-        </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Category</label>
-                <select id="p-cat">${['Raw Material','Component','Finished Good','Consumable'].map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}</select>
-            </div>
             <div class="form-row"><label>Unit</label>
                 <select id="p-unit">${['pcs','kg','box','m','L'].map(u=>`<option ${p.unit===u?'selected':''}>${u}</option>`).join('')}</select>
             </div>
-        </div>
-        <div class="form-grid-2">
             <div class="form-row"><label>Quantity On Hand</label><input id="p-qty" type="number" min="0" value="${p.quantityOnHand||0}"></div>
-            <div class="form-row"><label>Reorder Point</label><input id="p-rp" type="number" min="0" value="${p.reorderPoint||0}"></div>
         </div>
+        <div class="form-row"><label>Supplier</label><select id="p-sup">${supOpts}</select></div>
         <div class="form-grid-2">
-            <div class="form-row"><label>Reorder Quantity</label><input id="p-rq" type="number" min="0" value="${p.reorderQuantity||0}"></div>
-            <div class="form-row"><label>Supplier</label><select id="p-sup">${supOpts}</select></div>
+            <div class="form-row"><label>Unit Cost (${baseCode()} ${baseSym()}) — what you pay</label>
+                <input id="p-cost-yen" type="number" min="0" step="any" value="${costYen}" oninput="updateMarginPreview()">
+            </div>
+            <div class="form-row"><label>Unit Sell Price (${baseCode()} ${baseSym()}) — what you want</label>
+                <input id="p-sell-yen" type="number" min="0" step="any" value="${Math.round(sellYen)}" oninput="updateMarginPreview()">
+            </div>
         </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Unit Cost</label><input id="p-cost" type="number" min="0" step="any" value="${p.unitCost||0}"></div>
-            <div class="form-row"><label>Unit Sell Price</label><input id="p-price" type="number" min="0" step="any" value="${p.unitPrice||0}"></div>
+        <div class="form-row"><label>Sell Price in ${fxCode()} (${fxSym()}) — auto = ${baseSym()} × ${fixedRate()}</label>
+            <input id="p-price-vnd" type="number" readonly value="0" style="background:var(--surface-2); color:var(--text-2)">
+        </div>
+        <div class="form-row">
+            <small id="p-margin-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small>
         </div>`;
     openModal(existing?'Edit Product':'Add Product', html, () => {
         const name = document.getElementById('p-name').value.trim();
         if (!name) { toast('Enter product name','error'); return false; }
+        const sYen = Number(document.getElementById('p-sell-yen').value) || 0;
+        const yenCost = Number(document.getElementById('p-cost-yen').value) || 0;
         const row = {
-            sku: document.getElementById('p-sku').value,
-            name, category: document.getElementById('p-cat').value,
+            sku: p.sku,
+            name, category: p.category || 'Finished Good',
             unit: document.getElementById('p-unit').value,
             quantityOnHand: Number(document.getElementById('p-qty').value)||0,
-            reorderPoint: Number(document.getElementById('p-rp').value)||0,
-            reorderQuantity: Number(document.getElementById('p-rq').value)||0,
+            reorderPoint: Number(p.reorderPoint)||0,
+            reorderQuantity: Number(p.reorderQuantity)||0,
             supplierId: document.getElementById('p-sup').value,
-            unitCost: Number(document.getElementById('p-cost').value)||0,
-            unitPrice: Number(document.getElementById('p-price').value)||0,
+            unitCost: Math.round(yenCost),
+            unitPrice: Math.round(sYen * fixedRate()),    // foreign sell price, auto from yen × rate
             lastInboundDate: p.lastInboundDate || '',
             lastOutboundDate: p.lastOutboundDate || ''
         };
         srv('upsertStockItem', [row], () => { refresh(); toast(existing?'Product updated':'Product added','success'); });
         return true;
     });
+    updateMarginPreview();
+}
+function updateMarginPreview() {
+    const el = document.getElementById('p-margin-preview'); if (!el) return;
+    const cost = Number(document.getElementById('p-cost-yen').value) || 0;
+    const sellYen = Number(document.getElementById('p-sell-yen').value) || 0;
+    const vnd = Math.round(sellYen * fixedRate());
+    document.getElementById('p-price-vnd').value = vnd;     // auto-calculated foreign price
+    const marginYen = sellYen - cost;
+    const pct = cost > 0 ? (marginYen / cost * 100) : 0;
+    el.innerHTML = `Sells for <strong>${fmtVnd(vnd)}</strong> in ${fxCode()} (= ${fmt(sellYen)} × ${fixedRate()}) · `
+        + `Margin <strong style="color:${marginYen>=0?'var(--green)':'var(--red)'}">${fmt(marginYen)}</strong> (${pct.toFixed(0)}% on cost)`;
 }
 function editProduct(sku) { openProductModal(STATE.stock.find(p => p.sku===sku)); }
 function delProduct(sku) { if (!confirm('Delete product?')) return; srv('deleteStockItem', [sku], () => { refresh(); toast('Deleted'); }); }
@@ -872,6 +1210,9 @@ function delSupplier(id) { if (!confirm('Delete?')) return; srv('deleteSupplier'
 // PURCHASE ORDERS
 // ============================================================
 const PO_FLOW = { 'Preparing':'Delivery', 'Delivery':'Not Payment', 'Not Payment':'Done', 'Done':null };
+const STATUS_LABEL = { 'Preparing':'Preparing', 'Delivery':'Delivery', 'Not Payment':'Awaiting Payment', 'Done':'Done' };
+let PO_EXPANDED = {};   // per-column "show all" toggle for the workflow board
+function togglePOExpand(st) { PO_EXPANDED[st] = !PO_EXPANDED[st]; renderPOs(); }
 
 function openPOModal(existing) {
     const line = existing ? firstLine(existing) : { sku:'', quantity:1, unitCost:0, vatApplicable:true };
@@ -895,7 +1236,10 @@ function openPOModal(existing) {
             <div class="form-row"><label>Quantity</label><input id="po-qty" type="number" min="1" value="${line.quantity||1}"></div>
             <div class="form-row"><label>Unit Cost</label><input id="po-cost" type="number" min="0" step="any" value="${line.unitCost||0}"></div>
         </div>
-        <div class="form-row"><label>Payment Due Date</label><input id="po-pd" type="date" value="${dstr(po.paymentDueDate)||''}"></div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Payment Due Date</label><input id="po-pd" type="date" value="${dstr(po.paymentDueDate)||''}"></div>
+            <div class="form-row"><label>Deposit / Prepaid (${baseSym()})</label><input id="po-dep" type="number" min="0" step="any" value="${po.paidAmount||0}"></div>
+        </div>
         <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
             <input id="po-vat" type="checkbox" ${line.vatApplicable===false?'':'checked'}><label for="po-vat" style="margin:0">VAT-applicable</label>
         </div>`;
@@ -912,6 +1256,7 @@ function openPOModal(existing) {
             orderDate: document.getElementById('po-od').value,
             expectedDate: document.getElementById('po-ed').value,
             paymentDueDate: document.getElementById('po-pd').value,
+            depositAmount: Number(document.getElementById('po-dep').value)||0,
             lineItems: [{ sku, quantity: qty, unitCost: cost, vatApplicable: document.getElementById('po-vat').checked }]
         };
         const fnName = existing ? 'updatePO' : 'createPO';
@@ -934,8 +1279,13 @@ function saveSettings() {
     const patch = {
         currencySymbol: document.getElementById('set-sym').value || '¥',
         currencyCode: document.getElementById('set-code').value || 'JPY',
-        vatRate: Number(document.getElementById('set-vat').value) || 0
+        foreignSymbol: document.getElementById('set-fsym').value || '₫',
+        foreignCode: document.getElementById('set-fcode').value || 'VND',
+        vatRate: Number(document.getElementById('set-vat').value) || 0,
+        fixedRateVND: Number(document.getElementById('set-fixed').value) || 185
     };
+    // Update local state immediately so the product modal picks up the new rate
+    STATE.settings = Object.assign({}, STATE.settings, patch);
     srv('updateSettings', [patch], () => { refresh(); toast('Settings saved','success'); });
 }
 function exportJSON() {
@@ -961,20 +1311,27 @@ function resetAll() {
 // RENDERERS
 // ============================================================
 function renderAll() {
-    document.getElementById('chip-cur').textContent = STATE.settings.currencySymbol + ' ' + STATE.settings.currencyCode;
-    document.getElementById('chip-vat').textContent = STATE.settings.vatRate;
+    // Ensure fixed selling rate has a default if Sheet column is empty
+    if (!STATE.settings.fixedRateVND) STATE.settings.fixedRateVND = 185;
+    document.getElementById('chip-cur').textContent = baseSym() + ' ' + baseCode();
+    document.getElementById('chip-fx').textContent = `Fixed 1${baseSym()} = ${fixedRate()}${fxSym()}`;
     document.getElementById('filt-from').value = PERIOD.from;
     document.getElementById('filt-to').value   = PERIOD.to;
     const presetName = { thisMonth:'this month', lastMonth:'last month', quarter:'this quarter', year:'this year', all:'all-time', custom:'custom range' }[PERIOD.preset] || 'this month';
     document.getElementById('dash-period-label').textContent = `Showing data for ${presetName} (${PERIOD.from} → ${PERIOD.to})`;
     document.getElementById('bestseller-period-label').textContent = `(${presetName})`;
-    document.getElementById('set-sym').value = STATE.settings.currencySymbol;
-    document.getElementById('set-code').value = STATE.settings.currencyCode;
+    document.getElementById('set-sym').value = baseSym();
+    document.getElementById('set-code').value = baseCode();
+    document.getElementById('set-fsym').value = fxSym();
+    document.getElementById('set-fcode').value = fxCode();
     document.getElementById('set-vat').value = STATE.settings.vatRate;
+    document.getElementById('set-fixed').value = STATE.settings.fixedRateVND;
+    document.getElementById('set-fixed-hint').textContent = `e.g. 1 ${baseSym()} = ${fixedRate()} ${fxSym()}. Used to value foreign sales in your base currency and as the baseline each real conversion is compared against on the Trading page.`;
     renderDashboard();
     renderIncome(); renderExpenses();
     renderStock(); renderPOs(); renderSuppliers();
-    renderCashFlow(); renderPL(); renderVAT();
+    renderCashFlow(); renderPL();
+    renderTrading(); renderCards();
 }
 
 let CHARTS = {};
@@ -982,7 +1339,65 @@ function chartUp(id, cfg) {
     if (CHARTS[id]) CHARTS[id].destroy();
     Chart.defaults.color = '#5b6478';
     Chart.defaults.borderColor = '#e5e8f0';
+    // Force a sane default size — overrides Chart.js' 2:1 auto aspect ratio
+    cfg.options = cfg.options || {};
+    cfg.options.responsive = true;
+    cfg.options.maintainAspectRatio = false;
     CHARTS[id] = new Chart(document.getElementById(id), cfg);
+}
+
+// ============================================================
+// SHARED COMPUTATIONS (trading, cards, cash) — all in YEN unless noted
+// ============================================================
+// Trading metrics. Revenue/COGS/realized-FX are for the active PERIOD;
+// the VND wallet is an all-time running balance (held ₫ never "expire").
+function tradingMetrics() {
+    const fx = fixedRate();
+    const stockBy = {}; STATE.stock.forEach(p => { stockBy[p.sku] = p; });
+    const sales = (STATE.stockMoves || []).filter(m => Number(m.qtyDelta) < 0);
+    let vndRev = 0, cogs = 0, vndRevAll = 0;
+    sales.forEach(m => {
+        const p = stockBy[m.sku] || {}; const q = Math.abs(Number(m.qtyDelta));
+        const rev = q * Number(p.unitPrice || 0);
+        vndRevAll += rev;
+        if (inMonth(m)) { vndRev += rev; cogs += q * Number(p.unitCost || 0); }
+    });
+    const marginAtFixed = vndRev / fx - cogs;
+    const conv = (STATE.conversions || []).filter(inMonth);
+    let realizedFx = 0, jpyFromConv = 0;
+    conv.forEach(c => {
+        const vnd = Number(c.vndAmount) || 0, net = (Number(c.jpyReceived) || 0) - (Number(c.fee) || 0);
+        realizedFx += net - vnd / fx;
+        jpyFromConv += net;
+    });
+    const vndConvAll = (STATE.conversions || []).reduce((a,c)=> a + (Number(c.vndAmount)||0), 0);
+    const wallet = vndRevAll - vndConvAll;       // ₫ still held
+    const netReal = marginAtFixed + realizedFx;  // realized net profit (¥)
+    return { fx, vndRev, cogs, marginAtFixed, realizedFx, jpyFromConv, wallet, netReal, vndConvAll, jpyConvAll: (STATE.conversions||[]).reduce((a,c)=>a+((Number(c.jpyReceived)||0)-(Number(c.fee)||0)),0) };
+}
+// Credit-card metrics: balance = opening + charges − payments (all-time).
+function cardMetrics() {
+    const txns = STATE.cardTxns || [];
+    const byCard = {};
+    (STATE.creditCards || []).forEach(c => { byCard[c.cardId] = { card: c, balance: Number(c.openingBalance) || 0 }; });
+    txns.forEach(t => {
+        const b = byCard[t.cardId]; if (!b) return;
+        b.balance += (t.type === 'payment' ? -1 : 1) * (Number(t.amount) || 0);
+    });
+    const used = Object.values(byCard).reduce((a,b)=> a + b.balance, 0);
+    const limit = (STATE.creditCards || []).reduce((a,c)=> a + (Number(c.creditLimit)||0), 0);
+    const chargedPeriod = sum(txns.filter(t => t.type !== 'payment' && inMonth(t)), 'amount');
+    const paidPeriod    = sum(txns.filter(t => t.type === 'payment' && inMonth(t)), 'amount');
+    return { byCard, used, limit, available: limit - used, chargedPeriod, paidPeriod };
+}
+// Cash on hand (¥): personal income − personal cash expenses − card payments + yen pulled from conversions.
+// Card *charges* are deferred and intentionally excluded (they only hit cash when paid).
+function cashPosition() {
+    const inc = sum(STATE.income, 'amountGross');
+    const exp = sum(STATE.expenses, 'amountGross');
+    const cardPay = sum((STATE.cardTxns || []).filter(t => t.type === 'payment'), 'amount');
+    const jpyFromConv = (STATE.conversions || []).reduce((a,c)=> a + ((Number(c.jpyReceived)||0) - (Number(c.fee)||0)), 0);
+    return inc - exp - cardPay + jpyFromConv;
 }
 
 function renderDashboard() {
@@ -990,25 +1405,27 @@ function renderDashboard() {
     const exp = STATE.expenses.filter(inMonth);
     const gross = sum(inc,'amountGross');
     const totalExp = sum(exp,'amountGross');
-    const profit = gross - totalExp;
-    const vatNet = sum(inc,'amountVat') - sum(exp,'amountVat');
-    const invValue = STATE.stock.reduce((a,p)=> a + Number(p.quantityOnHand)*Number(p.unitCost), 0);
     const unpaid = STATE.pos.filter(p => p.status==='Not Payment');
     const reorderCnt = STATE.stock.filter(p => Number(p.quantityOnHand) <= Number(p.reorderPoint)).length;
+    const t = tradingMetrics();
+    const cc = cardMetrics();
+    const cash = cashPosition();
 
+    document.getElementById('k-cash').textContent = fmt(cash);
+    document.getElementById('k-cash-sub').textContent = 'income + ¥ converted − spend − card payments';
+    document.getElementById('k-credit').textContent = fmt(cc.available);
+    document.getElementById('k-credit-sub').textContent = `${fmt(cc.used)} used of ${fmt(cc.limit)}`;
+    document.getElementById('k-trade').textContent = fmt(t.netReal);
+    document.getElementById('k-trade-sub').textContent = `margin ${fmt(t.marginAtFixed)} + FX ${fmt(t.realizedFx)}`;
+    document.getElementById('k-wallet').textContent = fmtVnd(t.wallet);
+    document.getElementById('k-wallet-sub').textContent = `≈ ${fmt(t.wallet / t.fx)} at fixed`;
     document.getElementById('k-inc').textContent = fmt(gross);
     document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
     document.getElementById('k-exp').textContent = fmt(totalExp);
     document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
-    document.getElementById('k-prof').textContent = fmt(profit);
-    document.getElementById('k-margin').textContent = 'margin ' + (gross>0?((profit/gross)*100).toFixed(1):0) + '%';
-    document.getElementById('k-vat').textContent = fmt(vatNet);
-    document.getElementById('k-inv').textContent = fmt(invValue);
-    document.getElementById('k-inv-cnt').textContent = STATE.stock.length + ' SKUs';
-    document.getElementById('k-pay').textContent = fmt(sum(unpaid,'totalGross'));
-    document.getElementById('k-pay-cnt').textContent = unpaid.length + ' POs unpaid';
 
     renderBestSellers();
+    renderSupplierRank();
 
     document.getElementById('badge-stock').textContent = reorderCnt;
     document.getElementById('badge-po').textContent = unpaid.length + STATE.pos.filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
@@ -1094,8 +1511,8 @@ function renderIncome() {
             <td>${dstr(r.date)}</td><td>${r.client||'—'}</td><td><span class="tag blue">${r.category}</span></td>
             <td>${r.description||'—'}</td>
             <td class="right">${fmt(r.amountGross)}</td><td class="right">${fmt(r.amountVat)}</td><td class="right">${fmt(r.amountNet)}</td>
-            <td class="right"><button class="btn ghost sm" onclick="editIncome('${r.id}')"><i class='bx bx-edit'></i></button>
-                              <button class="btn ghost sm" onclick="delIncome('${r.id}')"><i class='bx bx-trash'></i></button></td>
+            <td class="right"><button class="btn ghost sm" onclick="editIncome('${r.id}')"><span class="material-icons">edit</span></button>
+                              <button class="btn ghost sm" onclick="delIncome('${r.id}')"><span class="material-icons">delete</span></button></td>
         </tr>`).join('')}</tbody></table>`;
 }
 
@@ -1109,8 +1526,8 @@ function renderExpenses() {
             <td>${dstr(r.date)}</td><td>${r.vendor||'—'}</td><td><span class="tag ${tagColor[r.costType]||'gray'}">${r.costType||'—'}</span></td>
             <td>${r.category}</td><td>${r.description||'—'}</td>
             <td class="right">${fmt(r.amountGross)}</td><td class="right">${fmt(r.amountVat)}</td>
-            <td class="right"><button class="btn ghost sm" onclick="editExpense('${r.id}')"><i class='bx bx-edit'></i></button>
-                              <button class="btn ghost sm" onclick="delExpense('${r.id}')"><i class='bx bx-trash'></i></button></td>
+            <td class="right"><button class="btn ghost sm" onclick="editExpense('${r.id}')"><span class="material-icons">edit</span></button>
+                              <button class="btn ghost sm" onclick="delExpense('${r.id}')"><span class="material-icons">delete</span></button></td>
         </tr>`).join('')}</tbody></table>`;
 }
 
@@ -1126,27 +1543,26 @@ function renderStock() {
 
     if (!ps.length) { document.getElementById('stock-table').innerHTML='<div class="empty">No products yet. Click <strong>Add Product</strong>.</div>'; return; }
     document.getElementById('stock-table').innerHTML = `<table class="tbl">
-        <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Unit</th><th class="right">Qty</th><th class="right">Reorder Pt</th><th class="right">Unit Cost</th><th class="right">Value</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Unit</th><th class="right">Qty</th><th class="right">Cost (${baseSym()})</th><th class="right">Sell (${fxSym()})</th><th class="right">Value (${baseSym()})</th><th>Status</th><th></th></tr></thead>
         <tbody>${ps.map(p=>{
             const q = Number(p.quantityOnHand);
             const status = q===0 ? '<span class="tag red">Out</span>'
                 : q <= Number(p.reorderPoint) ? '<span class="tag amber">Low</span>'
                 : '<span class="tag green">OK</span>';
             return `<tr>
-                <td><code style="font-family:ui-monospace,monospace; font-size:0.78rem">${p.sku}</code></td>
-                <td>${p.name}</td><td>${p.category}</td><td>${p.unit}</td>
+                <td>${p.name}</td><td>${p.unit}</td>
                 <td class="right">
                     <button class="btn ghost sm" onclick="adjustQty('${p.sku}',-1)">−</button>
                     <input class="inline" type="number" value="${q}" onchange="setQty('${p.sku}', this.value)" style="text-align:right">
                     <button class="btn ghost sm" onclick="adjustQty('${p.sku}',1)">+</button>
                 </td>
-                <td class="right">${p.reorderPoint}</td>
                 <td class="right">${fmt(p.unitCost)}</td>
+                <td class="right">${fmtVnd(p.unitPrice)}</td>
                 <td class="right">${fmt(q*Number(p.unitCost))}</td>
                 <td>${status}</td>
                 <td class="right">
-                    <button class="btn ghost sm" onclick="editProduct('${p.sku}')"><i class='bx bx-edit'></i></button>
-                    <button class="btn ghost sm" onclick="delProduct('${p.sku}')"><i class='bx bx-trash'></i></button>
+                    <button class="btn ghost sm" onclick="editProduct('${p.sku}')"><span class="material-icons">edit</span></button>
+                    <button class="btn ghost sm" onclick="delProduct('${p.sku}')"><span class="material-icons">delete</span></button>
                 </td>
             </tr>`;
         }).join('')}</tbody></table>`;
@@ -1155,13 +1571,13 @@ function renderStock() {
 function renderPOs() {
     const all = STATE.pos;
     const open = all.filter(p => p.status!=='Done').length;
-    const unpaid = all.filter(p => p.status==='Not Payment');
+    const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
     const delivered = all.filter(p => p.actualDeliveryDate && p.expectedDate);
     const onTimePct = delivered.length
         ? Math.round(delivered.filter(p => dstr(p.actualDeliveryDate) <= dstr(p.expectedDate)).length / delivered.length * 100) + '%'
         : '—';
     document.getElementById('p-open').textContent = open;
-    document.getElementById('p-pay').textContent = fmt(sum(unpaid,'totalGross'));
+    document.getElementById('p-pay').textContent = fmt(outstanding);
     document.getElementById('p-ontime').textContent = onTimePct;
     document.getElementById('p-total').textContent = all.length;
 
@@ -1170,27 +1586,72 @@ function renderPOs() {
         const items = all.filter(p => p.status===st);
         document.getElementById('c-'+st.replace(' ','')).textContent = items.length;
         if (!items.length) { col.innerHTML = '<div class="empty" style="padding:1.5rem 0">—</div>'; return; }
-        col.innerHTML = items.map(p => {
+        const LIMIT = 8;
+        const expanded = !!PO_EXPANDED[st];
+        const shown = (items.length > LIMIT && !expanded) ? items.slice(0, LIMIT) : items;
+        const moreBtn = items.length > LIMIT
+            ? `<button class="btn sm" style="width:100%; justify-content:center; margin-top:0.4rem;" onclick="togglePOExpand('${st}')">${expanded ? 'Show less ▴' : 'Show all '+items.length+' ▾'}</button>`
+            : '';
+        col.innerHTML = shown.map(p => {
             const next = PO_FLOW[p.status];
             let warn='';
             if (st==='Delivery' && p.expectedDate && dstr(p.expectedDate) < todayISO()) warn = '⚠ Delivery overdue';
             if (st==='Not Payment' && p.paymentDueDate && dstr(p.paymentDueDate) < todayISO()) warn = '⚠ Payment overdue';
             const line = firstLine(p);
             const prod = STATE.stock.find(x => x.sku===line.sku);
+            const total = Number(p.totalGross)||0;
+            const paid = Number(p.paidAmount)||0;
+            const balance = Math.max(0, total - paid);
+            const pct = total>0 ? Math.min(100, Math.round(paid/total*100)) : 0;
+            const fullyPaid = total>0 && paid>=total;
+            // Payment block: progress bar + paid/balance, shown once an order is past Preparing.
+            const payBlock = (p.status!=='Preparing') ? `
+                <div style="margin-top:0.5rem; font-size:0.72rem; color:var(--text-2);">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>Paid ${fmt(paid)}${fullyPaid?' <span class="tag green" style="padding:0 5px">PAID</span>':''}</span>
+                        <span>${fullyPaid?'':'Balance '+fmt(balance)}</span>
+                    </div>
+                    <div style="height:6px; background:var(--surface-2); border-radius:4px; margin-top:3px; overflow:hidden;">
+                        <div style="height:100%; width:${pct}%; background:${fullyPaid?'var(--green)':'var(--amber)'};"></div>
+                    </div>
+                </div>` : '';
             return `<div class="po-card">
                 <div class="id">${p.poId}</div>
                 <div class="sup">${p.supplierName||'—'}</div>
                 <div style="font-size:0.78rem; color:var(--text-2);">${prod?prod.name:line.sku} × ${line.quantity}</div>
                 <div class="amt">${fmt(p.totalGross)}</div>
                 <div class="meta"><span>${dstr(p.orderDate)}</span><span>${p.expectedDate?'ETA '+dstr(p.expectedDate):''}</span></div>
+                ${payBlock}
                 ${warn?`<div class="warn">${warn}</div>`:''}
                 <div class="row-btns">
-                    ${next ? `<button class="btn success sm" onclick="advancePO('${p.poId}')"><i class='bx bx-right-arrow-alt'></i> ${next}</button>` : ''}
-                    ${p.status==='Preparing' ? `<button class="btn ghost sm" onclick="editPO('${p.poId}')"><i class='bx bx-edit'></i></button>` : ''}
-                    <button class="btn ghost sm" onclick="delPO('${p.poId}')"><i class='bx bx-trash'></i></button>
+                    ${(p.status!=='Preparing' && !fullyPaid) ? `<button class="btn primary sm" onclick="openPOPaymentModal('${p.poId}')"><span class="material-icons">payments</span> Pay</button>` : ''}
+                    ${next ? `<button class="btn success sm" onclick="advancePO('${p.poId}')"><span class="material-icons">arrow_forward</span> ${STATUS_LABEL[next]||next}</button>` : ''}
+                    ${p.status==='Preparing' ? `<button class="btn ghost sm" onclick="editPO('${p.poId}')"><span class="material-icons">edit</span></button>` : ''}
+                    <button class="btn ghost sm" onclick="delPO('${p.poId}')"><span class="material-icons">delete</span></button>
                 </div>
             </div>`;
-        }).join('');
+        }).join('') + moreBtn;
+    });
+}
+function openPOPaymentModal(poId) {
+    const po = STATE.pos.find(p => p.poId===poId); if (!po) return;
+    const total = Number(po.totalGross)||0, paid = Number(po.paidAmount)||0;
+    const balance = Math.max(0, total - paid);
+    const html = `
+        <div style="background:var(--surface-2); padding:0.7rem 0.9rem; border-radius:8px; font-size:0.85rem; margin-bottom:0.3rem;">
+            Order total <strong>${fmt(total)}</strong> · Paid <strong>${fmt(paid)}</strong> · Balance owed <strong style="color:var(--amber)">${fmt(balance)}</strong>
+        </div>
+        <div class="form-row"><label>Payment amount (${baseSym()})</label><input id="pp-amt" type="number" min="0" step="any" value="${balance}"></div>
+        <div class="form-row" style="flex-direction:row; gap:0.4rem; flex-wrap:wrap;">
+            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${Math.round(total*0.3)}">30% deposit</button>
+            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${Math.round(total*0.5)}">50%</button>
+            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${balance}">Full balance</button>
+        </div>`;
+    openModal('Record Payment — ' + poId, html, () => {
+        const amt = Number(document.getElementById('pp-amt').value)||0;
+        if (amt<=0) { toast('Enter an amount','error'); return false; }
+        srv('recordPOPayment', [poId, amt], () => { refresh(); toast(`Recorded ${fmt(amt)} for ${poId}`,'success'); });
+        return true;
     });
 }
 function editPO(poId) { openPOModal(STATE.pos.find(p => p.poId===poId)); }
@@ -1204,28 +1665,66 @@ function renderSuppliers() {
             <td>${s.name}</td><td>${s.contact||'—'}</td><td>Net ${s.paymentTermsDays}</td>
             <td><span class="tag green">${s.rating||'—'}</span></td>
             <td class="right">
-                <button class="btn ghost sm" onclick="editSupplier('${s.supplierId}')"><i class='bx bx-edit'></i></button>
-                <button class="btn ghost sm" onclick="delSupplier('${s.supplierId}')"><i class='bx bx-trash'></i></button>
+                <button class="btn ghost sm" onclick="editSupplier('${s.supplierId}')"><span class="material-icons">edit</span></button>
+                <button class="btn ghost sm" onclick="delSupplier('${s.supplierId}')"><span class="material-icons">delete</span></button>
             </td></tr>`).join('')}</tbody></table>`;
 }
 
+// Daily cash flow for one ISO date: income in, expenses + card payments out.
+function dayCashIn(iso)  { return sum(STATE.income.filter(r=>dstr(r.date)===iso),'amountGross'); }
+function dayCashOut(iso) {
+    return sum(STATE.expenses.filter(r=>dstr(r.date)===iso),'amountGross')
+         + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date)===iso),'amount');
+}
 function renderCashFlow() {
     const hm = document.getElementById('heatmap'); hm.innerHTML='';
     ['S','M','T','W','T','F','S'].forEach(d => { const e=document.createElement('div'); e.className='day'; e.textContent=d; e.style.fontWeight=700; e.style.color='var(--muted)'; e.style.background='transparent'; e.style.border='none'; hm.appendChild(e); });
     const now = new Date(); const y=now.getFullYear(), m=now.getMonth();
     const first = new Date(y,m,1); const days = new Date(y,m+1,0).getDate();
     for (let i=0;i<first.getDay();i++){ const e=document.createElement('div'); e.className='day'; e.style.visibility='hidden'; hm.appendChild(e); }
+    let monthIn=0, monthOut=0; const balLabels=[], balData=[]; let running=0;
     for (let d=1;d<=days;d++){
         const iso = new Date(y,m,d).toISOString().slice(0,10);
-        const inc = sum(STATE.income.filter(r=>dstr(r.date)===iso),'amountGross');
-        const exp = sum(STATE.expenses.filter(r=>dstr(r.date)===iso),'amountGross');
-        const n = inc - exp;
+        const inN = dayCashIn(iso), outN = dayCashOut(iso), n = inN - outN;
+        monthIn += inN; monthOut += outN; running += n;
+        balLabels.push(String(d)); balData.push(Math.round(running));
         let cls='';
         if (n>1000000) cls='h-pos-3'; else if (n>300000) cls='h-pos-2'; else if (n>0) cls='h-pos-1';
         else if (n<-1000000) cls='h-neg-3'; else if (n<-300000) cls='h-neg-2'; else if (n<0) cls='h-neg-1';
         const cell=document.createElement('div'); cell.className='day '+cls; cell.textContent=d; cell.title=`${iso}: ${fmt(n)}`;
         hm.appendChild(cell);
     }
+    // KPIs
+    document.getElementById('cf-in').textContent = fmt(monthIn);
+    document.getElementById('cf-out').textContent = fmt(monthOut);
+    document.getElementById('cf-net').textContent = fmt(monthIn - monthOut);
+    document.getElementById('cf-end').textContent = fmt(cashPosition());
+
+    // Running cumulative-net line for the month
+    chartUp('cfBalanceChart', {
+        type:'line',
+        data:{ labels:balLabels, datasets:[{ label:'Cumulative net', data:balData,
+            borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.10)', tension:0.3, fill:true, pointRadius:0 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+            scales:{ y:{ ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
+    });
+
+    // Inflow vs outflow, last 6 months
+    const months=[]; for (let i=5;i>=0;i--){ const d=new Date(y,m-i,1); months.push(d.toISOString().slice(0,7)); }
+    const inflow = months.map(ym => sum(STATE.income.filter(r=>dstr(r.date).slice(0,7)===ym),'amountGross'));
+    const outflow = months.map(ym =>
+        sum(STATE.expenses.filter(r=>dstr(r.date).slice(0,7)===ym),'amountGross')
+      + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date).slice(0,7)===ym),'amount'));
+    chartUp('cfBarsChart', {
+        type:'bar',
+        data:{ labels: months.map(ym=>{ const [yy,mm]=ym.split('-'); return new Date(yy,mm-1).toLocaleString('default',{month:'short'}); }),
+            datasets:[
+                { label:'Inflow', data:inflow, backgroundColor:'#10b981', borderWidth:0 },
+                { label:'Outflow', data:outflow, backgroundColor:'#ef4444', borderWidth:0 }
+            ] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
+    });
 }
 
 function renderPL() {
@@ -1240,7 +1739,7 @@ function renderPL() {
     const op = gp - opex;
     const opexCats = {};
     exp.filter(e=>e.costType!=='COGS').forEach(e => opexCats[e.category] = (opexCats[e.category]||0) + Number(e.amountNet||0));
-    let html = '<h3><i class="bx bx-bar-chart-alt-2"></i> Profit & Loss — This Month</h3><table class="tbl"><tbody>';
+    let html = '<h3><span class="material-icons">bar_chart</span> Profit & Loss — This Month</h3><table class="tbl"><tbody>';
     html += `<tr><td style="font-weight:700; color:var(--primary)">REVENUE</td><td class="right"></td></tr>`;
     html += `<tr><td style="padding-left:1.5rem">Gross Revenue</td><td class="right">${fmt(gross)}</td></tr>`;
     html += `<tr><td style="padding-left:1.5rem">Less: Output VAT</td><td class="right">(${fmt(vatOut)})</td></tr>`;
@@ -1256,14 +1755,345 @@ function renderPL() {
     document.getElementById('pl-panel').innerHTML = html;
 }
 
-function renderVAT() {
-    const inc = STATE.income.filter(inMonth);
-    const exp = STATE.expenses.filter(inMonth);
-    const vOut = sum(inc,'amountVat'); const vIn = sum(exp,'amountVat');
-    document.getElementById('v-out').textContent = '+' + fmt(vOut);
-    document.getElementById('v-in').textContent  = '−' + fmt(vIn);
-    document.getElementById('v-net').textContent = fmt(vOut - vIn);
+// ============================================================
+// TRADING & FX
+// ============================================================
+function latestConvRate() {
+    const cs = (STATE.conversions || []).slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
+    return cs.length ? Number(cs[0].rate) || fixedRate() : fixedRate();
 }
+function renderTrading() {
+    const t = tradingMetrics();
+    const fx = t.fx;
+    // Dynamic, currency-aware labels
+    document.getElementById('t-title').textContent = `Trading & FX — Profit in ${baseCode()}`;
+    document.getElementById('t-subtitle').textContent = `Buy at home in ${baseCode()} (${baseSym()}) → sell abroad in ${fxCode()} (${fxSym()}) at the fixed 1${baseSym()} = ${fx}${fxSym()} → convert back to ${baseSym()} at the real rate. Profit shown in ${baseCode()}.`;
+    document.getElementById('t-rev-lbl').textContent = `Sales Revenue (${fxSym()})`;
+    document.getElementById('t-cogs-lbl').textContent = `COGS (${baseSym()})`;
+    document.getElementById('t-margin-lbl').textContent = `Trading Margin @${fx} (${baseSym()})`;
+    document.getElementById('t-fx-lbl').textContent = `Realized FX (${baseSym()})`;
+    document.getElementById('t-wallet-lbl').textContent = `${fxCode()} Wallet`;
+    document.getElementById('t-unreal-lbl').textContent = `Unrealized FX (${baseSym()})`;
+    document.getElementById('t-base-code').textContent = baseCode();
+    document.getElementById('t-rate-lbl').textContent = `Current market rate (${fxSym()} per ${baseSym()})`;
+    document.getElementById('t-rate-hint').textContent = `lower than ${fx} = good time to convert`;
+    document.getElementById('t-fxchart-title').textContent = `Conversion Rate vs Fixed (${fx})`;
+    document.getElementById('t-convlog-title').textContent = `Currency Exchange Log (${fxSym()} → ${baseSym()})`;
+    document.getElementById('t-conv-btn').textContent = `Convert ${fxCode()} → ${baseCode()}`;
+
+    // current market rate input — seed with latest conversion (or fixed) on first render
+    const rateEl = document.getElementById('t-rate-now');
+    if (rateEl && !rateEl.value) rateEl.value = Math.round(latestConvRate());
+    const rateNow = (rateEl && Number(rateEl.value) > 0) ? Number(rateEl.value) : fx;
+    const unrealized = t.wallet * (1/rateNow - 1/fx);
+
+    document.getElementById('t-rev').textContent = fmtVnd(t.vndRev);
+    document.getElementById('t-rev-sub').textContent = `≈ ${fmt(t.vndRev / fx)} at fixed`;
+    document.getElementById('t-cogs').textContent = fmt(t.cogs);
+    document.getElementById('t-margin').textContent = fmt(t.marginAtFixed);
+    document.getElementById('t-margin-sub').textContent = t.vndRev>0 ? `${(t.marginAtFixed/(t.vndRev/fx)*100).toFixed(0)}% of sales` : 'markup profit';
+    document.getElementById('t-fx').textContent = (t.realizedFx>=0?'+':'') + fmt(t.realizedFx);
+    document.getElementById('t-fx').style.color = t.realizedFx>=0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('t-wallet').textContent = fmtVnd(t.wallet);
+    document.getElementById('t-wallet-sub').textContent = `≈ ${fmt(t.wallet / fx)} at fixed`;
+    document.getElementById('t-unreal').textContent = (unrealized>=0?'+':'') + fmt(unrealized);
+    document.getElementById('t-unreal').style.color = unrealized>=0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('t-unreal-sub').textContent = `at ${Math.round(rateNow)} ${fxSym()}/${baseSym()}`;
+    document.getElementById('t-net-real').textContent = fmt(t.netReal);
+    document.getElementById('t-net-econ').textContent = fmt(t.netReal + unrealized);
+
+    // "What if I convert the whole wallet now?" projection
+    const receiveYen = t.wallet / rateNow;            // base ¥ you'd get
+    const baselineYen = t.wallet / fx;                // value at fixed rate
+    const fxGain = receiveYen - baselineYen;          // = unrealized
+    const totalProfit = t.netReal + fxGain;           // realized profit if you convert now
+    const fxGainPct = baselineYen > 0 ? (fxGain / baselineYen * 100) : 0;
+    // Profit margin: total profit over the cost base of goods sold (fallback to FX-vs-fixed %).
+    const marginPct = t.cogs > 0 ? (totalProfit / t.cogs * 100) : fxGainPct;
+    document.getElementById('t-wi-receive').textContent = fmt(receiveYen);
+    document.getElementById('t-wi-total').textContent = fmt(totalProfit);
+    document.getElementById('t-wi-pct').textContent = marginPct.toFixed(0) + '%';
+    document.getElementById('t-wi-pct').style.color = marginPct>=0 ? 'var(--green)' : 'var(--red)';
+    if (t.wallet <= 0) {
+        document.getElementById('t-whatif').innerHTML = `Your ${fxCode()} wallet is empty — nothing to convert right now. Record sales (sell stock) to build up ${fxSym()}.`;
+    } else {
+        document.getElementById('t-whatif').innerHTML =
+            `At <strong>1${baseSym()} = ${Math.round(rateNow)}${fxSym()}</strong>, your wallet of <strong>${fmtVnd(t.wallet)}</strong> converts to <strong>${fmt(receiveYen)}</strong>. `
+          + `That's <strong style="color:${fxGain>=0?'var(--green)':'var(--red)'}">${fxGain>=0?'+':''}${fmt(fxGain)} (${fxGainPct>=0?'+':''}${fxGainPct.toFixed(1)}%)</strong> versus converting at the fixed ${fx}. `
+          + `Convert now and your total realized profit becomes <strong>${fmt(totalProfit)}</strong>. `
+          + (rateNow < fx ? '🎉 Good rate — better than fixed.' : rateNow > fx ? '⚠ Worse than fixed — you may want to wait.' : 'Exactly the fixed rate.');
+    }
+
+    renderConvTable();
+    renderFxChart();
+    renderProfitChart(t);
+}
+
+function renderConvTable() {
+    const rows = (STATE.conversions || []).slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
+    const el = document.getElementById('conv-table');
+    if (!rows.length) { el.innerHTML = `<div class="empty">No conversions yet. Click <strong>Convert ${fxCode()} → ${baseCode()}</strong> when you exchange money.</div>`; return; }
+    const fx = fixedRate();
+    el.innerHTML = `<table class="tbl">
+        <thead><tr><th>Date</th><th class="right">${fxCode()} amount</th><th class="right">Rate (${fxSym()}/${baseSym()})</th><th class="right">${baseSym()} received</th><th class="right">Fee ${baseSym()}</th><th class="right">vs Fixed</th><th>Note</th><th></th></tr></thead>
+        <tbody>${rows.map(c=>{
+            const vnd=Number(c.vndAmount)||0, rcv=Number(c.jpyReceived)||0, fee=Number(c.fee)||0;
+            const gain = (rcv - fee) - vnd/fx;
+            return `<tr>
+                <td>${dstr(c.date)}</td>
+                <td class="right">${fmtVnd(vnd)}</td>
+                <td class="right">${Number(c.rate).toLocaleString()}</td>
+                <td class="right">${fmt(rcv)}</td>
+                <td class="right">${fee?fmt(fee):'—'}</td>
+                <td class="right" style="color:${gain>=0?'var(--green)':'var(--red)'}; font-weight:600">${gain>=0?'+':''}${fmt(gain)}</td>
+                <td>${c.note||'—'}</td>
+                <td class="right">
+                    <button class="btn ghost sm" onclick="editConversion('${c.id}')"><span class="material-icons">edit</span></button>
+                    <button class="btn ghost sm" onclick="delConversion('${c.id}')"><span class="material-icons">delete</span></button>
+                </td></tr>`;
+        }).join('')}</tbody></table>`;
+}
+
+function renderFxChart() {
+    const rows = (STATE.conversions || []).slice().sort((a,b)=> dstr(a.date).localeCompare(dstr(b.date)));
+    const labels = rows.map(c => dstr(c.date));
+    const data = rows.map(c => Number(c.rate)||0);
+    const fx = fixedRate();
+    chartUp('fxChart', {
+        type:'line',
+        data: { labels: labels.length?labels:['—'], datasets:[
+            { label:`Actual rate (${fxSym()}/${baseSym()})`, data: data.length?data:[fx], borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.3, fill:true, pointRadius:4 },
+            { label:`Fixed (${fx})`, data: (labels.length?labels:['—']).map(()=>fx), borderColor:'#f59e0b', borderDash:[6,4], pointRadius:0, fill:false }
+        ]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } },
+            scales:{ y:{ ticks:{ callback:v=>v.toLocaleString()+' '+fxSym() } } } }
+    });
+}
+
+function renderProfitChart(t) {
+    chartUp('profitChart', {
+        type:'bar',
+        data: { labels:['Trading margin','Realized FX','Net profit'],
+            datasets:[{ data:[t.marginAtFixed, t.realizedFx, t.netReal],
+                backgroundColor:['#4f46e5','#10b981','#3b82f6'], borderWidth:0 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
+    });
+}
+
+function openConversionModal(existing) {
+    const e = existing || { date: todayISO(), vndAmount:0, rate: Math.round(latestConvRate()), fee:0, note:'' };
+    const html = `
+        <div class="form-grid-2">
+            <div class="form-row"><label>Date</label><input id="cv-date" type="date" value="${dstr(e.date)||todayISO()}"></div>
+            <div class="form-row"><label>${fxCode()} amount converted (${fxSym()})</label><input id="cv-vnd" type="number" min="0" step="any" value="${e.vndAmount||0}" oninput="updateConvPreview()"></div>
+        </div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Actual rate (${fxSym()} per 1 ${baseSym()})</label><input id="cv-rate" type="number" min="1" step="any" value="${e.rate||fixedRate()}" oninput="updateConvPreview()"></div>
+            <div class="form-row"><label>Fee (${baseSym()}, optional)</label><input id="cv-fee" type="number" min="0" step="any" value="${e.fee||0}" oninput="updateConvPreview()"></div>
+        </div>
+        <div class="form-row"><label>Note</label><input id="cv-note" value="${e.note||''}"></div>
+        <div class="form-row"><small id="cv-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small></div>`;
+    openModal(existing?'Edit Conversion':`Convert ${fxCode()} → ${baseCode()}`, html, () => {
+        const vnd = Number(document.getElementById('cv-vnd').value)||0;
+        const rate = Number(document.getElementById('cv-rate').value)||0;
+        if (vnd<=0 || rate<=0) { toast(`Enter ${fxCode()} amount and rate`,'error'); return false; }
+        const tx = { id: existing?.id || '', date: document.getElementById('cv-date').value,
+            vndAmount: vnd, rate, fee: Number(document.getElementById('cv-fee').value)||0,
+            note: document.getElementById('cv-note').value };
+        srv('saveConversion', [tx], () => { refresh(); toast(existing?'Conversion updated':'Conversion logged','success'); });
+        return true;
+    });
+    updateConvPreview();
+}
+function updateConvPreview() {
+    const el = document.getElementById('cv-preview'); if (!el) return;
+    const vnd = Number(document.getElementById('cv-vnd').value)||0;
+    const rate = Number(document.getElementById('cv-rate').value)||0;
+    const fee = Number(document.getElementById('cv-fee').value)||0;
+    const fx = fixedRate();
+    if (rate<=0) { el.textContent = 'Enter a rate to preview.'; return; }
+    const gross = vnd/rate, net = gross - fee, gain = net - vnd/fx;
+    el.innerHTML = `You receive <strong>${fmt(net)}</strong> (gross ${fmt(gross)} − fee ${fmt(fee)}). `
+        + `vs fixed ${fx}: <strong style="color:${gain>=0?'var(--green)':'var(--red)'}">${gain>=0?'+':''}${fmt(gain)}</strong> `
+        + (rate<fx ? '🎉 better than fixed' : rate>fx ? '⚠ worse than fixed' : 'exactly fixed');
+}
+function editConversion(id){ openConversionModal((STATE.conversions||[]).find(c=>c.id===id)); }
+function delConversion(id){ if(!confirm('Delete conversion?'))return; srv('deleteConversion',[id],()=>{refresh();toast('Deleted');}); }
+
+// ============================================================
+// CREDIT CARDS
+// ============================================================
+function renderCards() {
+    const cc = cardMetrics();
+    document.getElementById('cc-bal').textContent = fmt(cc.used);
+    document.getElementById('cc-bal-sub').textContent = (STATE.creditCards||[]).length + ' card(s)';
+    document.getElementById('cc-limit').textContent = fmt(cc.limit);
+    document.getElementById('cc-util').textContent = (cc.limit>0?Math.round(cc.used/cc.limit*100):0) + '% utilised';
+    document.getElementById('cc-charged').textContent = fmt(cc.chargedPeriod);
+    document.getElementById('cc-paid').textContent = fmt(cc.paidPeriod);
+
+    renderRecurring();
+
+    const grid = document.getElementById('cards-grid');
+    if (!(STATE.creditCards||[]).length) { grid.innerHTML = '<div class="empty">No cards yet. Click <strong>Add Card</strong>.</div>'; }
+    else {
+        grid.innerHTML = STATE.creditCards.map(c => {
+            const b = cc.byCard[c.cardId]?.balance || 0;
+            const util = Number(c.creditLimit)>0 ? Math.round(b/Number(c.creditLimit)*100) : 0;
+            return `<div class="bestseller-card" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff); border-color:#c7d2fe;">
+                <span class="rank-badge"><span class="material-icons" style="font-size:1.6rem; color:var(--primary)">credit_card</span></span>
+                <div class="sku">${c.issuer||'Card'}</div>
+                <div class="name">${c.name}</div>
+                <div class="stats" style="flex-direction:column; gap:0.2rem;">
+                    <div>Balance: <strong>${fmt(b)}</strong> / ${fmt(c.creditLimit)} (${util}%)</div>
+                    <div>Statement day ${c.statementDay} · Due day ${c.dueDay}</div>
+                </div>
+                <div class="row-btns" style="display:flex; gap:0.3rem; margin-top:0.5rem;">
+                    <button class="btn ghost sm" onclick="editCard('${c.cardId}')"><span class="material-icons">edit</span></button>
+                    <button class="btn ghost sm" onclick="delCard('${c.cardId}')"><span class="material-icons">delete</span></button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    const rows = (STATE.cardTxns||[]).slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
+    const el = document.getElementById('cardtxn-table');
+    const cardName = id => (STATE.creditCards||[]).find(c=>c.cardId===id)?.name || '—';
+    if (!rows.length) { el.innerHTML = '<div class="empty">No card transactions yet.</div>'; return; }
+    el.innerHTML = `<table class="tbl">
+        <thead><tr><th>Date</th><th>Card</th><th>Type</th><th>Category</th><th>Description</th><th class="right">Amount</th><th></th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+            <td>${dstr(r.date)}</td><td>${cardName(r.cardId)}</td>
+            <td><span class="tag ${r.type==='payment'?'green':'amber'}">${r.type==='payment'?'Payment':'Charge'}</span></td>
+            <td>${r.category||'—'}</td><td>${r.description||'—'}</td>
+            <td class="right">${fmt(r.amount)}</td>
+            <td class="right"><button class="btn ghost sm" onclick="delCardTxn('${r.id}')"><span class="material-icons">delete</span></button></td>
+        </tr>`).join('')}</tbody></table>`;
+}
+
+function openCardModal(existing) {
+    const c = existing || { cardId:uid('CARD'), name:'', issuer:'', creditLimit:0, statementDay:1, dueDay:10, openingBalance:0 };
+    const html = `
+        <div class="form-row"><label>Card Name</label><input id="cd-name" value="${c.name||''}"></div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Issuer</label><input id="cd-issuer" value="${c.issuer||''}"></div>
+            <div class="form-row"><label>Credit Limit (${baseSym()})</label><input id="cd-limit" type="number" min="0" value="${c.creditLimit||0}"></div>
+        </div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Statement Day</label><input id="cd-stmt" type="number" min="1" max="31" value="${c.statementDay||1}"></div>
+            <div class="form-row"><label>Due Day</label><input id="cd-due" type="number" min="1" max="31" value="${c.dueDay||10}"></div>
+        </div>
+        <div class="form-row"><label>Opening Balance (${baseSym()})</label><input id="cd-open" type="number" min="0" value="${c.openingBalance||0}"></div>`;
+    openModal(existing?'Edit Card':'Add Card', html, () => {
+        const name = document.getElementById('cd-name').value.trim();
+        if (!name) { toast('Card name required','error'); return false; }
+        const row = { cardId: c.cardId, name, issuer: document.getElementById('cd-issuer').value,
+            creditLimit: Number(document.getElementById('cd-limit').value)||0,
+            statementDay: Number(document.getElementById('cd-stmt').value)||1,
+            dueDay: Number(document.getElementById('cd-due').value)||10,
+            openingBalance: Number(document.getElementById('cd-open').value)||0 };
+        srv('upsertCreditCard', [row], () => { refresh(); toast(existing?'Card updated':'Card added','success'); });
+        return true;
+    });
+}
+function editCard(id){ openCardModal((STATE.creditCards||[]).find(c=>c.cardId===id)); }
+function delCard(id){ if(!confirm('Delete card and its transactions?'))return; srv('deleteCreditCard',[id],()=>{refresh();toast('Card deleted');}); }
+
+function openCardTxnModal() {
+    if (!(STATE.creditCards||[]).length) { toast('Add a card first','error'); return; }
+    const cardOpts = STATE.creditCards.map(c=>`<option value="${c.cardId}">${c.name}</option>`).join('');
+    const html = `
+        <div class="form-grid-2">
+            <div class="form-row"><label>Card</label><select id="ct-card">${cardOpts}</select></div>
+            <div class="form-row"><label>Type</label><select id="ct-type"><option value="charge">Charge (buy on credit)</option><option value="payment">Payment (pay the card)</option></select></div>
+        </div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Date</label><input id="ct-date" type="date" value="${todayISO()}"></div>
+            <div class="form-row"><label>Amount (${baseSym()})</label><input id="ct-amt" type="number" min="0" step="any" value="0"></div>
+        </div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Category</label>
+                <select id="ct-cat">${['Goods Purchase','Groceries','Dining','Travel','Utilities','Subscription','Other'].map(c=>`<option>${c}</option>`).join('')}</select>
+            </div>
+            <div class="form-row"><label>Description</label><input id="ct-desc" value=""></div>
+        </div>
+        <div class="form-row"><small style="color:var(--text-2); font-size:0.75rem;">A <strong>charge</strong> raises your card balance but does <em>not</em> reduce cash. A <strong>payment</strong> reduces both the balance and your cash (shows on Cash Flow).</small></div>`;
+    openModal('Add Card Transaction', html, () => {
+        const amt = Number(document.getElementById('ct-amt').value)||0;
+        if (amt<=0) { toast('Enter an amount','error'); return false; }
+        const tx = { cardId: document.getElementById('ct-card').value, date: document.getElementById('ct-date').value,
+            type: document.getElementById('ct-type').value, amount: amt,
+            category: document.getElementById('ct-cat').value, description: document.getElementById('ct-desc').value };
+        srv('addCardTxn', [tx], () => { refresh(); toast('Transaction added','success'); });
+        return true;
+    });
+}
+function delCardTxn(id){ if(!confirm('Delete transaction?'))return; srv('deleteCardTxn',[id],()=>{refresh();toast('Deleted');}); }
+
+// ---- Recurring auto-charges (subscriptions / utilities) ----
+function nextChargeDate(r) {
+    const day = Math.min(28, Math.max(1, Number(r.dayOfMonth)||1));
+    const now = new Date();
+    let d = new Date(now.getFullYear(), now.getMonth(), day);
+    if (d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) d = new Date(now.getFullYear(), now.getMonth()+1, day);
+    return d.toISOString().slice(0,10);
+}
+function renderRecurring() {
+    const rows = STATE.recurring || [];
+    const el = document.getElementById('recurring-table'); if (!el) return;
+    const cardName = id => (STATE.creditCards||[]).find(c=>c.cardId===id)?.name || '—';
+    if (!rows.length) { el.innerHTML = '<div class="empty">No auto-charges yet. Add electricity, rent, Netflix, etc.</div>'; return; }
+    const active = r => (r.active!==false && String(r.active).toLowerCase()!=='false');
+    el.innerHTML = `<table class="tbl">
+        <thead><tr><th>Name</th><th>Card</th><th>Category</th><th class="right">Amount</th><th>Every</th><th>Next charge</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+            <td>${r.name}</td><td>${cardName(r.cardId)}</td><td>${r.category||'—'}</td>
+            <td class="right">${fmt(r.amount)}</td>
+            <td>day ${r.dayOfMonth} / month</td>
+            <td>${active(r)?nextChargeDate(r):'—'}</td>
+            <td><span class="tag ${active(r)?'green':'gray'}">${active(r)?'Active':'Paused'}</span></td>
+            <td class="right">
+                <button class="btn ghost sm" onclick="editRecurring('${r.id}')"><span class="material-icons">edit</span></button>
+                <button class="btn ghost sm" onclick="delRecurring('${r.id}')"><span class="material-icons">delete</span></button>
+            </td></tr>`).join('')}</tbody></table>`;
+}
+function openRecurringModal(existing) {
+    if (!(STATE.creditCards||[]).length) { toast('Add a card first','error'); return; }
+    const r = existing || { id:'', cardId:STATE.creditCards[0].cardId, name:'', category:'Subscription', amount:0, dayOfMonth:1, active:true };
+    const cardOpts = STATE.creditCards.map(c=>`<option value="${c.cardId}" ${r.cardId===c.cardId?'selected':''}>${c.name}</option>`).join('');
+    const isActive = (r.active!==false && String(r.active).toLowerCase()!=='false');
+    const html = `
+        <div class="form-row"><label>Name (e.g. Electricity, Netflix)</label><input id="rc-name" value="${r.name||''}"></div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Card</label><select id="rc-card">${cardOpts}</select></div>
+            <div class="form-row"><label>Category</label>
+                <select id="rc-cat">${['Subscription','Utilities','Rent','Insurance','Phone/Internet','Other'].map(c=>`<option ${r.category===c?'selected':''}>${c}</option>`).join('')}</select>
+            </div>
+        </div>
+        <div class="form-grid-2">
+            <div class="form-row"><label>Amount (${baseSym()})</label><input id="rc-amt" type="number" min="0" step="any" value="${r.amount||0}"></div>
+            <div class="form-row"><label>Charge on day (1–28)</label><input id="rc-day" type="number" min="1" max="28" value="${r.dayOfMonth||1}"></div>
+        </div>
+        <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
+            <input id="rc-active" type="checkbox" ${isActive?'checked':''}><label for="rc-active" style="margin:0">Active (auto-post each month)</label>
+        </div>`;
+    openModal(existing?'Edit Auto-Charge':'Add Auto-Charge', html, () => {
+        const name = document.getElementById('rc-name').value.trim();
+        const amt = Number(document.getElementById('rc-amt').value)||0;
+        if (!name || amt<=0) { toast('Enter a name and amount','error'); return false; }
+        const row = { id: existing?.id || '', cardId: document.getElementById('rc-card').value,
+            name, category: document.getElementById('rc-cat').value, amount: amt,
+            dayOfMonth: Number(document.getElementById('rc-day').value)||1,
+            active: document.getElementById('rc-active').checked,
+            lastPosted: existing?.lastPosted || '' };
+        srv('upsertRecurring', [row], () => { refresh(); toast(existing?'Auto-charge updated':'Auto-charge added','success'); });
+        return true;
+    });
+}
+function editRecurring(id){ openRecurringModal((STATE.recurring||[]).find(r=>r.id===id)); }
+function delRecurring(id){ if(!confirm('Delete this auto-charge? (already-posted charges stay)'))return; srv('deleteRecurring',[id],()=>{refresh();toast('Deleted');}); }
+function runRecurringNow(){ srv('postDueRecurring',[],res=>{ refresh(); toast('Posted '+((res&&res.posted)||0)+' due charge(s)','success'); }); }
 
 // ============================================================
 // BEST SELLERS — top 3 by outbound units × unit price in the period
@@ -1297,28 +2127,44 @@ function renderBestSellers() {
         </div>`).join('');
 }
 
-// ============================================================
-// AUDIT LOG
-// ============================================================
-function loadAudit() {
-    document.getElementById('audit-table').innerHTML = '<div class="empty">Loading…</div>';
-    srv('listAuditLog', [100], rows => {
-        if (!rows || !rows.length) { document.getElementById('audit-table').innerHTML='<div class="empty">No audit entries yet.</div>'; return; }
-        document.getElementById('audit-table').innerHTML = `<table class="tbl">
-            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>ID</th><th>Hash</th></tr></thead>
-            <tbody>${rows.map(r => `<tr>
-                <td>${dstr(r.timestamp)} ${String(r.timestamp).slice(11,19)}</td>
-                <td>${r.user||'—'}</td>
-                <td><span class="tag ${r.action==='CREATE'?'green':r.action==='DELETE'?'red':'blue'}">${r.action}</span></td>
-                <td>${r.entity}</td>
-                <td><code style="font-family:ui-monospace,monospace; font-size:0.75rem">${r.entityId||''}</code></td>
-                <td><code style="font-family:ui-monospace,monospace; font-size:0.7rem; color:var(--muted)">${(r.afterHash||r.beforeHash||'').slice(0,12)}…</code></td>
-            </tr>`).join('')}</tbody></table>`;
+// Suppliers ranked by total purchased (sum of PO order value), all-time.
+function renderSupplierRank() {
+    const el = document.getElementById('supplier-rank'); if (!el) return;
+    const agg = {};
+    (STATE.pos || []).forEach(p => {
+        const id = p.supplierId || p.supplierName || '—';
+        if (!agg[id]) agg[id] = { name: p.supplierName || id, total: 0, paid: 0, orders: 0 };
+        agg[id].name = p.supplierName || agg[id].name;
+        agg[id].total += Number(p.totalGross) || 0;
+        agg[id].paid  += Number(p.paidAmount) || 0;
+        agg[id].orders += 1;
     });
+    const ranked = Object.values(agg).sort((a,b) => b.total - a.total);
+    if (!ranked.length) { el.innerHTML = '<div class="empty">No purchase orders yet — add a PO to see supplier spend ranked here.</div>'; return; }
+    const grand = ranked.reduce((a,s)=> a + s.total, 0) || 1;
+    const medal = i => ['🥇','🥈','🥉'][i] || (i+1);
+    el.innerHTML = `<table class="tbl">
+        <thead><tr><th>#</th><th>Supplier</th><th class="right">Orders</th><th class="right">Total Purchased</th><th class="right">Balance Owed</th><th>Share</th></tr></thead>
+        <tbody>${ranked.map((s,i)=>{
+            const owed = Math.max(0, s.total - s.paid);
+            const pct = Math.round(s.total / grand * 100);
+            return `<tr>
+                <td style="font-size:1rem">${medal(i)}</td>
+                <td>${s.name}</td>
+                <td class="right">${s.orders}</td>
+                <td class="right" style="font-weight:700">${fmt(s.total)}</td>
+                <td class="right" style="color:${owed>0?'var(--amber)':'var(--muted)'}">${owed>0?fmt(owed):'—'}</td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="flex:1; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; min-width:60px;">
+                            <div style="height:100%; width:${pct}%; background:var(--primary);"></div>
+                        </div>
+                        <span style="font-size:0.72rem; color:var(--text-2); width:34px; text-align:right;">${pct}%</span>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('')}</tbody></table>`;
 }
-
-// Auto-load audit when its nav item is clicked
-document.querySelector('[data-view="audit"]')?.addEventListener('click', loadAudit);
 
 // Close mobile sidebar when a nav item is clicked
 document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', () => {
@@ -1328,8 +2174,23 @@ document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', 
 // ============================================================
 // BOOT
 // ============================================================
+// Editable brand name (persisted locally)
+(function initBrand(){
+    const el = document.getElementById('brand-name'); if (!el) return;
+    let saved = null; try { saved = localStorage.getItem('brandName'); } catch(e){}
+    if (saved) el.textContent = saved;
+    document.title = el.textContent;
+    const save = () => { const v = (el.textContent||'').trim() || 'Profit-Intel'; el.textContent = v; document.title = v; try { localStorage.setItem('brandName', v); } catch(e){} };
+    el.addEventListener('blur', save);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+})();
+
 setQuickPeriod('thisMonth');  // initialise active button + date inputs
+setSyncStatus(DEMO ? 'demo' : 'syncing');
+document.getElementById('sync-chip').style.cursor = 'pointer';
+document.getElementById('sync-chip').addEventListener('click', () => { if (!DEMO) refresh(); });
 refresh();
+if (DEMO) setTimeout(() => toast('Demo mode — sample data, not connected to Google Sheets. Edits stay until reload.', ''), 600);
 </script>
 </body>
 </html>
