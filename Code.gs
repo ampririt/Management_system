@@ -48,6 +48,7 @@ const TABS = {
   CREDIT_CARDS: "CreditCards",
   CARD_TXNS: "CardTxns",
   RECURRING: "Recurring",
+  SALES: "Sales",
 };
 
 const HEADERS = {
@@ -55,7 +56,7 @@ const HEADERS = {
   Settings: ["currencySymbol","currencyCode","vatRate","monthlyIncomeGoal","monthlyProfitGoal","minLiquidity","fxRateVND","fixedRateVND","foreignSymbol","foreignCode"],
   VATTimeline: ["effectiveFrom", "rate", "note"],
   Income: ["id","date","description","client","category","amountGross","amountVat","amountNet","isVatApplicable","currency","fxRate"],
-  Expenses: ["id","date","description","vendor","category","costType","amountGross","amountVat","amountNet","isVatApplicable","linkedPOId"],
+  Expenses: ["id","date","description","vendor","category","costType","amountGross","amountVat","amountNet","isVatApplicable","linkedPOId","currency","paymentMethod","cardId"],
   Stock: ["sku","name","category","unit","quantityOnHand","reorderPoint","reorderQuantity","unitCost","unitPrice","lastInboundDate","lastOutboundDate","supplierId"],
   StockMoves: ["moveId", "sku", "date", "qtyDelta", "reason", "refId", "user"],
   PurchaseOrders: ["poId","supplierId","supplierName","orderDate","expectedDate","actualDeliveryDate","currency","fxRate","subtotal","vatAmount","totalGross","status","paymentDueDate","paidDate","notes","paidAmount"],
@@ -70,6 +71,9 @@ const HEADERS = {
   CardTxns: ["id","cardId","date","description","category","amount","type"],
   // Recurring auto-charges (subscriptions, utilities). lastPosted = "YYYY-MM" of the last month auto-posted.
   Recurring: ["id","cardId","name","category","amount","dayOfMonth","active","lastPosted"],
+  // Customer sales orders. currency = which market you sold in (base ¥ or foreign ₫).
+  // unitPriceVnd/totalVnd/paidVnd hold amounts in that sale's currency. paidVnd tracks payments (deposit + balance).
+  Sales: ["saleId","customer","date","sku","quantity","unitPriceVnd","totalVnd","status","paidVnd","deliveredDate","notes","currency"],
 };
 
 // =============================================================
@@ -285,7 +289,8 @@ function getBootstrap() {
     conversions: safe('Conversions', () => _rows(TABS.CONVERSIONS),    []),
     creditCards: safe('CreditCards', () => _rows(TABS.CREDIT_CARDS),   []),
     cardTxns:    safe('CardTxns',    () => _rows(TABS.CARD_TXNS),      []),
-    recurring:   safe('Recurring',   () => _rows(TABS.RECURRING),      [])
+    recurring:   safe('Recurring',   () => _rows(TABS.RECURRING),      []),
+    sales:       safe('Sales',       () => _rows(TABS.SALES),          [])
   };
 }
 
@@ -333,7 +338,8 @@ function addIncome(tx) {
 function addExpense(tx) {
   const id = tx.id || _uuid();
   const { amountVat, amountNet } = _splitVat(Number(tx.amountGross), tx.isVatApplicable !== false, tx.date);
-  const row = { id, date: tx.date, description: tx.description || "", vendor: tx.vendor || "", category: tx.category || "Uncategorized", costType: tx.costType || "Variable", amountGross: Number(tx.amountGross), amountVat, amountNet, isVatApplicable: tx.isVatApplicable !== false, linkedPOId: tx.linkedPOId || "" };
+  const row = { id, date: tx.date, description: tx.description || "", vendor: tx.vendor || "", category: tx.category || "Uncategorized", costType: tx.costType || "Variable", amountGross: Number(tx.amountGross), amountVat, amountNet, isVatApplicable: tx.isVatApplicable !== false, linkedPOId: tx.linkedPOId || "",
+    currency: tx.currency || "", paymentMethod: tx.paymentMethod === "credit" ? "credit" : "cash", cardId: tx.cardId || "" };
   _appendObject(TABS.EXPENSES, row);
   _audit("CREATE", "Expense", id, null, row);
   return row;
@@ -433,14 +439,16 @@ function advancePOStatus(poId, newStatus, opts) {
   if (!po) throw new Error("PO not found: " + poId);
   const patch = { status: newStatus };
   if (newStatus === "Not Payment") {
+    // Goods received → raise inventory. (No expense booked here; the cost is recorded
+    // when you actually pay the supplier, on "Done", to avoid double-counting.)
     patch.actualDeliveryDate = opts.actualDeliveryDate || new Date().toISOString().slice(0, 10);
     const lines = _rows(TABS.PO_LINE_ITEMS).filter((l) => l.poId === poId);
     lines.forEach((l) => adjustStock(l.sku, Number(l.quantity), "PO-Receipt", poId));
-    addExpense({ date: patch.actualDeliveryDate, description: "Accrued: " + (po.supplierName || po.supplierId), vendor: po.supplierName, category: "Goods Received Not Invoiced", costType: "Variable", amountGross: Number(po.totalGross), isVatApplicable: true, linkedPOId: poId });
   }
   if (newStatus === "Done") {
+    // Supplier paid → single ¥ expense (cash). Use the PO Pay button for cash/credit splits.
     patch.paidDate = opts.paidDate || new Date().toISOString().slice(0, 10);
-    addExpense({ date: patch.paidDate, description: "PAID: " + (po.supplierName || po.supplierId), vendor: po.supplierName, category: "Supplier Payment", costType: "Variable", amountGross: Number(po.totalGross), isVatApplicable: true, linkedPOId: poId });
+    addExpense({ date: patch.paidDate, description: "Supplier payment: " + (po.supplierName || po.supplierId), vendor: po.supplierName, category: "Stock Purchase", costType: "COGS", amountGross: Number(po.totalGross), isVatApplicable: false, linkedPOId: poId, paymentMethod: "cash" });
   }
   _updateById(TABS.PURCHASE_ORDERS, "poId", poId, patch);
   _audit("UPDATE", "PurchaseOrder", poId, { status: po.status }, patch);
@@ -565,6 +573,59 @@ function _nextYM(ym) {
   return y + "-" + ("0" + m).slice(-2);
 }
 
+// =============================================================
+// SALES (customer orders abroad, in foreign ₫) — feed the ₫ wallet
+// =============================================================
+const SALE_FLOW = { 'Preparing':'Delivery', 'Delivery':'Awaiting Payment', 'Awaiting Payment':'Done', 'Done':null };
+function listSales() { return _rows(TABS.SALES); }
+function createSale(s) {
+  const saleId = s.saleId || ("SO-" + new Date().getFullYear() + "-" + String(Date.now()).slice(-5));
+  const qty = Number(s.quantity) || 0, price = Number(s.unitPriceVnd) || 0;
+  const row = { saleId, customer: s.customer || "", date: s.date || new Date().toISOString().slice(0, 10),
+    sku: s.sku || "", quantity: qty, unitPriceVnd: price, totalVnd: Math.round(qty * price),
+    status: "Preparing", paidVnd: Math.round(Number(s.depositVnd) || 0), deliveredDate: "", notes: s.notes || "",
+    currency: s.currency || "" };
+  _appendObject(TABS.SALES, row);
+  _audit("CREATE", "Sale", saleId, null, row);
+  return row;
+}
+function recordSalePayment(saleId, amountVnd) {
+  const s = _rows(TABS.SALES).find((x) => x.saleId === saleId);
+  if (!s) throw new Error("Sale not found: " + saleId);
+  const newPaid = Math.round((Number(s.paidVnd) || 0) + (Number(amountVnd) || 0));
+  _updateById(TABS.SALES, "saleId", saleId, { paidVnd: newPaid });
+  _audit("UPDATE", "Sale", saleId, { paidVnd: s.paidVnd }, { paidVnd: newPaid });
+  return Object.assign({}, s, { paidVnd: newPaid });
+}
+function advanceSaleStatus(saleId, newStatus) {
+  const s = _rows(TABS.SALES).find((x) => x.saleId === saleId);
+  if (!s) throw new Error("Sale not found: " + saleId);
+  const patch = { status: newStatus };
+  // On delivery the goods leave inventory (also feeds best-sellers + trading revenue via the stock move).
+  if (newStatus === "Delivery") {
+    patch.deliveredDate = new Date().toISOString().slice(0, 10);
+    if (s.sku) { try { adjustStock(s.sku, -Number(s.quantity), "Sale", saleId); } catch (e) {} }
+  }
+  _updateById(TABS.SALES, "saleId", saleId, patch);
+  _audit("UPDATE", "Sale", saleId, { status: s.status }, patch);
+  return Object.assign({}, s, patch);
+}
+function deleteSale(saleId) { _audit("DELETE", "Sale", saleId, { saleId }, null); return _deleteRow(TABS.SALES, "saleId", saleId); }
+
+// Buy / restock a product: raise inventory and book a ¥ expense (cash or credit).
+function buyStock(sku, qty, unitCostYen, paymentMethod, cardId, date) {
+  qty = Number(qty) || 0; unitCostYen = Number(unitCostYen) || 0;
+  const d = date || new Date().toISOString().slice(0, 10);
+  const item = _rows(TABS.STOCK).find((s) => s.sku === sku);
+  if (!item) throw new Error("SKU not found: " + sku);
+  adjustStock(sku, qty, "Purchase", "");
+  const amount = Math.round(qty * unitCostYen);
+  addExpense({ date: d, description: "Stock purchase: " + (item.name || sku) + " ×" + qty, vendor: item.supplierId || "",
+    category: "Stock Purchase", costType: "COGS", amountGross: amount, isVatApplicable: false,
+    paymentMethod: paymentMethod === "credit" ? "credit" : "cash", cardId: cardId || "" });
+  return { sku, added: qty, cost: amount };
+}
+
 function exportSnapshot() {
   const data = { exportedAt: new Date().toISOString(), settings: _rows(TABS.SETTINGS), vatTimeline: _rows(TABS.VAT_TIMELINE), income: _rows(TABS.INCOME), expenses: _rows(TABS.EXPENSES), stock: _rows(TABS.STOCK), stockMoves: _rows(TABS.STOCK_MOVES), pos: _rows(TABS.PURCHASE_ORDERS), poLines: _rows(TABS.PO_LINE_ITEMS), suppliers: _rows(TABS.SUPPLIERS), auditLog: _rows(TABS.AUDIT_LOG) };
   data.signature = _sha256(JSON.stringify(data));
@@ -573,35 +634,60 @@ function exportSnapshot() {
 
 function seedDemoData() {
   try { resetAllData(); } catch(e) {}
-  const today = new Date().toISOString().slice(0,10);
+  const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const mAgo = (m, day) => { const d = new Date(); d.setMonth(d.getMonth() - m); d.setDate(day); return d.toISOString().slice(0, 10); };
+  const today = dAgo(0);
   // Japanese suppliers
   [{supplierId:"SUP-001",name:"Yodobashi Camera",contact:"wholesale@yodobashi.jp",paymentTermsDays:0,rating:"A+"},
-   {supplierId:"SUP-002",name:"Mercari Japan",contact:"orders@mercari.jp",paymentTermsDays:0,rating:"A"}].forEach(upsertSupplier);
-  // Products: unitCost = ¥ paid in Japan, unitPrice = ₫ charged in Vietnam
-  [{sku:"JP-CAM01",name:"Used Mirrorless Camera",category:"Finished Good",unit:"pcs",quantityOnHand:6,reorderPoint:3,reorderQuantity:5,unitCost:42000,unitPrice:11000000,supplierId:"SUP-001",lastInboundDate:today,lastOutboundDate:today},
-   {sku:"JP-WAT02",name:"Vintage Seiko Watch",category:"Finished Good",unit:"pcs",quantityOnHand:10,reorderPoint:4,reorderQuantity:8,unitCost:18000,unitPrice:4600000,supplierId:"SUP-002",lastInboundDate:today,lastOutboundDate:today},
-   {sku:"JP-SKN03",name:"Skincare Set (Shiseido)",category:"Finished Good",unit:"box",quantityOnHand:30,reorderPoint:10,reorderQuantity:20,unitCost:6500,unitPrice:1750000,supplierId:"SUP-001",lastInboundDate:today,lastOutboundDate:today}].forEach(upsertStockItem);
-  // Sales in Vietnam (outbound stock moves drive VND revenue + best sellers)
-  adjustStock("JP-CAM01", -3, "Sale", "");
-  adjustStock("JP-WAT02", -5, "Sale", "");
-  adjustStock("JP-SKN03", -12, "Sale", "");
-  // VND -> JPY conversions (fixed selling rate is 185 ₫/¥)
-  addConversion({date:today, vndAmount:20000000, rate:178, fee:3000, note:"Converted early — VND strong, good rate"});
-  addConversion({date:today, vndAmount:10000000, rate:192, fee:2500, note:"Needed cash — converted at a worse rate"});
-  // Personal life
-  addIncome({date:today,description:"Salary",client:"Day job",category:"Services",amountGross:280000});
-  addExpense({date:today,description:"Rent",vendor:"Landlord",category:"Rent",costType:"Fixed",amountGross:85000});
-  // Credit card — buy stock on credit, then a partial payment
+   {supplierId:"SUP-002",name:"Mercari Japan",contact:"orders@mercari.jp",paymentTermsDays:0,rating:"A"},
+   {supplierId:"SUP-003",name:"Don Quijote",contact:"b2b@donki.jp",paymentTermsDays:15,rating:"B"}].forEach(upsertSupplier);
+  // Products: unitCost = ¥ paid in Japan, unitPrice = ₫ sold in Vietnam (= ¥ sell × 185)
+  [{sku:"JP-CAM01",name:"Used Mirrorless Camera",category:"Finished Good",unit:"pcs",quantityOnHand:6,reorderPoint:3,reorderQuantity:5,unitCost:42000,unitPrice:60000*185,supplierId:"SUP-001",lastInboundDate:dAgo(40),lastOutboundDate:dAgo(2)},
+   {sku:"JP-WAT02",name:"Vintage Seiko Watch",category:"Finished Good",unit:"pcs",quantityOnHand:9,reorderPoint:4,reorderQuantity:8,unitCost:18000,unitPrice:27000*185,supplierId:"SUP-002",lastInboundDate:dAgo(38),lastOutboundDate:dAgo(3)},
+   {sku:"JP-SKN03",name:"Skincare Set (Shiseido)",category:"Finished Good",unit:"box",quantityOnHand:34,reorderPoint:10,reorderQuantity:20,unitCost:6500,unitPrice:9500*185,supplierId:"SUP-001",lastInboundDate:dAgo(30),lastOutboundDate:dAgo(1)},
+   {sku:"JP-TOY04",name:"Bandai Figure (rare)",category:"Finished Good",unit:"pcs",quantityOnHand:15,reorderPoint:5,reorderQuantity:10,unitCost:9000,unitPrice:14000*185,supplierId:"SUP-003",lastInboundDate:dAgo(20),lastOutboundDate:dAgo(4)}].forEach(upsertStockItem);
+
+  // Credit card
   const card = upsertCreditCard({name:"Rakuten Card", issuer:"Rakuten", creditLimit:500000, statementDay:27, dueDay:10, openingBalance:0});
-  addCardTxn({cardId:card.cardId, date:today, type:"charge", amount:60000, category:"Goods Purchase", description:"Bought camera stock on credit"});
-  addCardTxn({cardId:card.cardId, date:today, type:"charge", amount:23000, category:"Dining", description:"Restaurant"});
-  addCardTxn({cardId:card.cardId, date:today, type:"payment", amount:40000, category:"Other", description:"Partial card payment"});
-  // Recurring auto-charges (subscriptions / utilities) — auto-posted by postDueRecurring()
+
+  // Personal income (¥) across 3 months + a ₫ side income
+  addIncome({date:mAgo(2,25),description:"Salary",client:"Day job",category:"Services",amountGross:280000,currency:"JPY"});
+  addIncome({date:mAgo(1,25),description:"Salary",client:"Day job",category:"Services",amountGross:280000,currency:"JPY"});
+  addIncome({date:mAgo(0,25),description:"Salary",client:"Day job",category:"Services",amountGross:280000,currency:"JPY"});
+  addIncome({date:dAgo(12),description:"Freelance design",client:"Acme",category:"Services",amountGross:95000,currency:"JPY"});
+
+  // Personal expenses — some cash (¥), one on credit
+  addExpense({date:mAgo(2,1),description:"Rent",vendor:"Landlord",category:"Rent",costType:"Fixed",amountGross:85000,paymentMethod:"cash"});
+  addExpense({date:mAgo(1,1),description:"Rent",vendor:"Landlord",category:"Rent",costType:"Fixed",amountGross:85000,paymentMethod:"cash"});
+  addExpense({date:mAgo(0,1),description:"Rent",vendor:"Landlord",category:"Rent",costType:"Fixed",amountGross:85000,paymentMethod:"cash"});
+  addExpense({date:dAgo(9),description:"New laptop (on card)",vendor:"BIC Camera",category:"Software",costType:"Fixed",amountGross:140000,paymentMethod:"credit",cardId:card.cardId});
+  addExpense({date:dAgo(5),description:"Groceries",vendor:"Supermarket",category:"Other",costType:"Variable",amountGross:18500,paymentMethod:"cash"});
+
+  // Buy / restock stock — ¥ expense (one cash, one on credit)
+  buyStock("JP-CAM01", 4, 42000, "cash", "", dAgo(40));
+  buyStock("JP-SKN03", 30, 6500, "credit", card.cardId, dAgo(30));
+
+  // Customer SALES orders. Vietnam sales are in ₫; one Japan sale is in ¥.
+  // Advancing to Delivery lowers stock + books trading revenue.
+  const s1 = createSale({customer:"Linh (Hanoi)", date:mAgo(1,12), sku:"JP-CAM01", quantity:2, unitPriceVnd:60000*185, currency:"VND", depositVnd:Math.round(2*60000*185*0.3)});
+  advanceSaleStatus(s1.saleId, "Delivery"); recordSalePayment(s1.saleId, Math.round(2*60000*185*0.7)); advanceSaleStatus(s1.saleId, "Awaiting Payment"); advanceSaleStatus(s1.saleId, "Done");
+  const s2 = createSale({customer:"Kenji (Osaka)", date:mAgo(0,8), sku:"JP-WAT02", quantity:1, unitPriceVnd:30000, currency:"JPY", depositVnd:0});  // sold locally in Japan, ¥
+  advanceSaleStatus(s2.saleId, "Delivery"); recordSalePayment(s2.saleId, 30000); advanceSaleStatus(s2.saleId, "Awaiting Payment"); advanceSaleStatus(s2.saleId, "Done");
+  const s3 = createSale({customer:"Trang (Da Nang)", date:dAgo(3), sku:"JP-SKN03", quantity:10, unitPriceVnd:9500*185, currency:"VND", depositVnd:0});
+
+  // VND -> JPY conversions (fixed selling rate is 185 ₫/¥)
+  addConversion({date:mAgo(1,15), vndAmount:12000000, rate:179, fee:3000, note:"VND strong — good rate"});
+  addConversion({date:dAgo(8), vndAmount:7000000, rate:176, fee:2000, note:"Best rate so far"});
+
+  // Credit card extras + recurring bills
+  addCardTxn({cardId:card.cardId, date:dAgo(40), type:"charge", amount:23000, category:"Dining", description:"Restaurant"});
+  addCardTxn({cardId:card.cardId, date:dAgo(15), type:"payment", amount:50000, category:"Other", description:"Card payment"});
   upsertRecurring({cardId:card.cardId, name:"Netflix", category:"Subscription", amount:1980, dayOfMonth:5, active:true});
   upsertRecurring({cardId:card.cardId, name:"Electricity Bill", category:"Utilities", amount:8500, dayOfMonth:25, active:true});
   postDueRecurring();
-  // An order with a 30% deposit, awaiting the balance after the customer receives goods
-  var demoPO = createPO({supplierId:"SUP-001", supplierName:"Yodobashi Camera", orderDate:today, expectedDate:today,
+
+  // A supplier PO with a deposit, goods received, awaiting final supplier payment
+  var demoPO = createPO({supplierId:"SUP-001", supplierName:"Yodobashi Camera", orderDate:dAgo(18), expectedDate:dAgo(8),
     paymentDueDate:today, depositAmount: Math.round(5*42000*1.1*0.3),
     lineItems:[{sku:"JP-CAM01", quantity:5, unitCost:42000, vatApplicable:true}]});
   advancePOStatus(demoPO.poId, "Delivery", {});
@@ -619,7 +705,7 @@ function deletePO(poId) { _deleteRow(TABS.PURCHASE_ORDERS, "poId", poId); const 
 
 function setStockQty(sku, qty) { const item = _rows(TABS.STOCK).find((s) => s.sku === sku); if (!item) throw new Error("SKU not found: " + sku); const delta = Number(qty) - Number(item.quantityOnHand); if (delta === 0) return { sku, quantityOnHand: Number(qty) }; return adjustStock(sku, delta, "Manual", ""); }
 function resetAllData() {
-  ["Income","Expenses","Stock","StockMoves","PurchaseOrders","POLineItems","Suppliers","Conversions","CreditCards","CardTxns","Recurring"].forEach((tabName) => {
+  ["Income","Expenses","Stock","StockMoves","PurchaseOrders","POLineItems","Suppliers","Conversions","CreditCards","CardTxns","Recurring","Sales"].forEach((tabName) => {
     try {
       const sh = _sheet(tabName);
       const last = sh.getLastRow();
