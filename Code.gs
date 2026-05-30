@@ -38,8 +38,6 @@ const TABS = {
   VAT_TIMELINE: "VATTimeline",
   INCOME: "Income",
   EXPENSES: "Expenses",
-  STOCK: "Stock",
-  STOCK_MOVES: "StockMoves",
   PURCHASE_ORDERS: "PurchaseOrders",
   PO_LINE_ITEMS: "POLineItems",
   SUPPLIERS: "Suppliers",
@@ -48,7 +46,7 @@ const TABS = {
   CREDIT_CARDS: "CreditCards",
   CARD_TXNS: "CardTxns",
   RECURRING: "Recurring",
-  SALES: "Sales",
+  TRANSACTIONS: "Transactions",
 };
 
 const HEADERS = {
@@ -57,10 +55,8 @@ const HEADERS = {
   VATTimeline: ["effectiveFrom", "rate", "note"],
   Income: ["id","date","description","client","category","amountGross","amountVat","amountNet","isVatApplicable","currency","fxRate"],
   Expenses: ["id","date","description","vendor","category","costType","amountGross","amountVat","amountNet","isVatApplicable","linkedPOId","currency","paymentMethod","cardId"],
-  Stock: ["sku","name","category","unit","quantityOnHand","reorderPoint","reorderQuantity","unitCost","unitPrice","lastInboundDate","lastOutboundDate","supplierId"],
-  StockMoves: ["moveId", "sku", "date", "qtyDelta", "reason", "refId", "user"],
   PurchaseOrders: ["poId","supplierId","supplierName","orderDate","expectedDate","actualDeliveryDate","currency","fxRate","subtotal","vatAmount","totalGross","status","paymentDueDate","paidDate","notes","paidAmount"],
-  POLineItems: ["poId", "sku", "quantity", "unitCost", "vatApplicable"],
+  POLineItems: ["poId", "productName", "category", "quantity", "unitCost", "unitSellVnd", "vatApplicable"],
   Suppliers: ["supplierId", "name", "contact", "paymentTermsDays", "rating"],
   AuditLog: ["timestamp","user","action","entity","entityId","beforeHash","afterHash","payload"],
   // VND -> JPY currency conversions (treasury). rate = VND per 1 JPY.
@@ -71,9 +67,7 @@ const HEADERS = {
   CardTxns: ["id","cardId","date","description","category","amount","type"],
   // Recurring auto-charges (subscriptions, utilities). lastPosted = "YYYY-MM" of the last month auto-posted.
   Recurring: ["id","cardId","name","category","amount","dayOfMonth","active","lastPosted"],
-  // Customer sales orders. currency = which market you sold in (base ¥ or foreign ₫).
-  // unitPriceVnd/totalVnd/paidVnd hold amounts in that sale's currency. paidVnd tracks payments (deposit + balance).
-  Sales: ["saleId","customer","date","sku","quantity","unitPriceVnd","totalVnd","status","paidVnd","deliveredDate","notes","currency"],
+  Transactions: ["id", "date", "productName", "supplierName", "quantity", "unitCost", "unitSellVnd", "totalCost", "totalSellVnd", "poId"],
 };
 
 // =============================================================
@@ -146,7 +140,7 @@ function setupWorkbook() {
   }
 
   SpreadsheetApp.flush();
-  return "Workbook synced with ID: " + id;
+  return "Workbook synced with ID: " + ss.getId();
 }
 
 // =============================================================
@@ -281,8 +275,6 @@ function getBootstrap() {
     vatTimeline: safe('VATTimeline', () => _rows(TABS.VAT_TIMELINE),  []),
     income:      safe('Income',      () => _rows(TABS.INCOME),         []),
     expenses:    safe('Expenses',    () => _rows(TABS.EXPENSES),       []),
-    stock:       safe('Stock',       () => _rows(TABS.STOCK),          []),
-    stockMoves:  safe('StockMoves',  () => _rows(TABS.STOCK_MOVES),    []),
     pos:         safe('PurchaseOrders', () => _rows(TABS.PURCHASE_ORDERS), []),
     poLines:     safe('POLineItems', () => _rows(TABS.PO_LINE_ITEMS),  []),
     suppliers:   safe('Suppliers',   () => _rows(TABS.SUPPLIERS),      []),
@@ -290,12 +282,33 @@ function getBootstrap() {
     creditCards: safe('CreditCards', () => _rows(TABS.CREDIT_CARDS),   []),
     cardTxns:    safe('CardTxns',    () => _rows(TABS.CARD_TXNS),      []),
     recurring:   safe('Recurring',   () => _rows(TABS.RECURRING),      []),
-    sales:       safe('Sales',       () => _rows(TABS.SALES),          [])
+    transactions: safe('Transactions', () => _rows(TABS.TRANSACTIONS),   [])
   };
 }
 
 function ping() {
   return { ok: true, spreadsheetId: _getSsId() };
+}
+
+/** Check connection and return spreadsheet metadata */
+function getSystemStatus() {
+  try {
+    const id = _getSsId();
+    const ss = SpreadsheetApp.openById(id);
+    const tabs = ss.getSheets().map(s => s.getName());
+    const missing = Object.keys(HEADERS).filter(h => !tabs.includes(h));
+    return {
+      ok: true,
+      name: ss.getName(),
+      id: id,
+      url: ss.getUrl(),
+      tabs: tabs,
+      missingTabs: missing,
+      isHealthy: missing.length === 0
+    };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 }
 
 function listAuditLog(limit) {
@@ -363,32 +376,7 @@ function deleteTransaction(kind, id) {
 
 function listIncome() { return _rows(TABS.INCOME); }
 function listExpenses() { return _rows(TABS.EXPENSES); }
-function listStock() { return _rows(TABS.STOCK); }
-
-function upsertStockItem(item) {
-  const existing = _rows(TABS.STOCK).find((s) => s.sku === item.sku);
-  if (existing) {
-    _updateById(TABS.STOCK, "sku", item.sku, item);
-    _audit("UPDATE", "Stock", item.sku, existing, item);
-  } else {
-    _appendObject(TABS.STOCK, item);
-    _audit("CREATE", "Stock", item.sku, null, item);
-  }
-  return item;
-}
-
-function adjustStock(sku, qtyDelta, reason, refId) {
-  const stock = _rows(TABS.STOCK);
-  const item = stock.find((s) => s.sku === sku);
-  if (!item) throw new Error("SKU not found: " + sku);
-  const newQty = Number(item.quantityOnHand) + Number(qtyDelta);
-  const patch = { quantityOnHand: newQty };
-  if (qtyDelta > 0) patch.lastInboundDate = new Date().toISOString().slice(0, 10);
-  else patch.lastOutboundDate = new Date().toISOString().slice(0, 10);
-  _updateById(TABS.STOCK, "sku", sku, patch);
-  _appendObject(TABS.STOCK_MOVES, { moveId: _uuid(), sku, date: new Date().toISOString(), qtyDelta, reason: reason || "Manual", refId: refId || "", user: Session.getActiveUser().getEmail() || "unknown" });
-  return { sku, quantityOnHand: newQty };
-}
+function listTransactions() { return _rows(TABS.TRANSACTIONS); }
 
 const PO_FLOW = { 'Preparing':'Delivery', 'Delivery':'Not Payment', 'Not Payment':'Done', 'Done':null };
 
@@ -412,7 +400,7 @@ function createPO(po) {
   });
   const header = { poId, supplierId: po.supplierId || "", supplierName: po.supplierName || "", orderDate, expectedDate: po.expectedDate || "", actualDeliveryDate: "", currency: po.currency || "JPY", fxRate: po.fxRate || 1, subtotal: Math.round(subtotal), vatAmount: Math.round(vatAmount), totalGross: Math.round(subtotal + vatAmount), status: "Preparing", paymentDueDate: po.paymentDueDate || "", paidDate: "", notes: po.notes || "", paidAmount: Math.round(Number(po.depositAmount) || 0) };
   _appendObject(TABS.PURCHASE_ORDERS, header);
-  (po.lineItems || []).forEach((li) => _appendObject(TABS.PO_LINE_ITEMS, { poId, sku: li.sku, quantity: li.quantity, unitCost: li.unitCost, vatApplicable: !!li.vatApplicable }));
+  (po.lineItems || []).forEach((li) => _appendObject(TABS.PO_LINE_ITEMS, { poId, productName: li.productName || "", category: li.category || "", quantity: li.quantity, unitCost: li.unitCost, unitSellVnd: li.unitSellVnd || 0, vatApplicable: !!li.vatApplicable }));
   _audit("CREATE", "PurchaseOrder", poId, null, header);
   return header;
 }
@@ -439,16 +427,33 @@ function advancePOStatus(poId, newStatus, opts) {
   if (!po) throw new Error("PO not found: " + poId);
   const patch = { status: newStatus };
   if (newStatus === "Not Payment") {
-    // Goods received → raise inventory. (No expense booked here; the cost is recorded
-    // when you actually pay the supplier, on "Done", to avoid double-counting.)
+    // Goods received
     patch.actualDeliveryDate = opts.actualDeliveryDate || new Date().toISOString().slice(0, 10);
-    const lines = _rows(TABS.PO_LINE_ITEMS).filter((l) => l.poId === poId);
-    lines.forEach((l) => adjustStock(l.sku, Number(l.quantity), "PO-Receipt", poId));
   }
   if (newStatus === "Done") {
     // Supplier paid → single ¥ expense (cash). Use the PO Pay button for cash/credit splits.
     patch.paidDate = opts.paidDate || new Date().toISOString().slice(0, 10);
     addExpense({ date: patch.paidDate, description: "Supplier payment: " + (po.supplierName || po.supplierId), vendor: po.supplierName, category: "Stock Purchase", costType: "COGS", amountGross: Number(po.totalGross), isVatApplicable: false, linkedPOId: poId, paymentMethod: "cash" });
+    
+    // Record into Transactions (History of selling)
+    const lines = _rows(TABS.PO_LINE_ITEMS).filter((l) => l.poId === poId);
+    lines.forEach((l) => {
+      const qty = Number(l.quantity) || 0;
+      const uCost = Number(l.unitCost) || 0;
+      const uSell = Number(l.unitSellVnd) || 0;
+      _appendObject(TABS.TRANSACTIONS, {
+        id: _uuid(),
+        date: patch.paidDate,
+        productName: l.productName,
+        supplierName: po.supplierName,
+        quantity: qty,
+        unitCost: uCost,
+        unitSellVnd: uSell,
+        totalCost: Math.round(qty * uCost),
+        totalSellVnd: Math.round(qty * uSell),
+        poId: poId
+      });
+    });
   }
   _updateById(TABS.PURCHASE_ORDERS, "poId", poId, patch);
   _audit("UPDATE", "PurchaseOrder", poId, { status: po.status }, patch);
@@ -573,61 +578,8 @@ function _nextYM(ym) {
   return y + "-" + ("0" + m).slice(-2);
 }
 
-// =============================================================
-// SALES (customer orders abroad, in foreign ₫) — feed the ₫ wallet
-// =============================================================
-const SALE_FLOW = { 'Preparing':'Delivery', 'Delivery':'Awaiting Payment', 'Awaiting Payment':'Done', 'Done':null };
-function listSales() { return _rows(TABS.SALES); }
-function createSale(s) {
-  const saleId = s.saleId || ("SO-" + new Date().getFullYear() + "-" + String(Date.now()).slice(-5));
-  const qty = Number(s.quantity) || 0, price = Number(s.unitPriceVnd) || 0;
-  const row = { saleId, customer: s.customer || "", date: s.date || new Date().toISOString().slice(0, 10),
-    sku: s.sku || "", quantity: qty, unitPriceVnd: price, totalVnd: Math.round(qty * price),
-    status: "Preparing", paidVnd: Math.round(Number(s.depositVnd) || 0), deliveredDate: "", notes: s.notes || "",
-    currency: s.currency || "" };
-  _appendObject(TABS.SALES, row);
-  _audit("CREATE", "Sale", saleId, null, row);
-  return row;
-}
-function recordSalePayment(saleId, amountVnd) {
-  const s = _rows(TABS.SALES).find((x) => x.saleId === saleId);
-  if (!s) throw new Error("Sale not found: " + saleId);
-  const newPaid = Math.round((Number(s.paidVnd) || 0) + (Number(amountVnd) || 0));
-  _updateById(TABS.SALES, "saleId", saleId, { paidVnd: newPaid });
-  _audit("UPDATE", "Sale", saleId, { paidVnd: s.paidVnd }, { paidVnd: newPaid });
-  return Object.assign({}, s, { paidVnd: newPaid });
-}
-function advanceSaleStatus(saleId, newStatus) {
-  const s = _rows(TABS.SALES).find((x) => x.saleId === saleId);
-  if (!s) throw new Error("Sale not found: " + saleId);
-  const patch = { status: newStatus };
-  // On delivery the goods leave inventory (also feeds best-sellers + trading revenue via the stock move).
-  if (newStatus === "Delivery") {
-    patch.deliveredDate = new Date().toISOString().slice(0, 10);
-    if (s.sku) { try { adjustStock(s.sku, -Number(s.quantity), "Sale", saleId); } catch (e) {} }
-  }
-  _updateById(TABS.SALES, "saleId", saleId, patch);
-  _audit("UPDATE", "Sale", saleId, { status: s.status }, patch);
-  return Object.assign({}, s, patch);
-}
-function deleteSale(saleId) { _audit("DELETE", "Sale", saleId, { saleId }, null); return _deleteRow(TABS.SALES, "saleId", saleId); }
-
-// Buy / restock a product: raise inventory and book a ¥ expense (cash or credit).
-function buyStock(sku, qty, unitCostYen, paymentMethod, cardId, date) {
-  qty = Number(qty) || 0; unitCostYen = Number(unitCostYen) || 0;
-  const d = date || new Date().toISOString().slice(0, 10);
-  const item = _rows(TABS.STOCK).find((s) => s.sku === sku);
-  if (!item) throw new Error("SKU not found: " + sku);
-  adjustStock(sku, qty, "Purchase", "");
-  const amount = Math.round(qty * unitCostYen);
-  addExpense({ date: d, description: "Stock purchase: " + (item.name || sku) + " ×" + qty, vendor: item.supplierId || "",
-    category: "Stock Purchase", costType: "COGS", amountGross: amount, isVatApplicable: false,
-    paymentMethod: paymentMethod === "credit" ? "credit" : "cash", cardId: cardId || "" });
-  return { sku, added: qty, cost: amount };
-}
-
 function exportSnapshot() {
-  const data = { exportedAt: new Date().toISOString(), settings: _rows(TABS.SETTINGS), vatTimeline: _rows(TABS.VAT_TIMELINE), income: _rows(TABS.INCOME), expenses: _rows(TABS.EXPENSES), stock: _rows(TABS.STOCK), stockMoves: _rows(TABS.STOCK_MOVES), pos: _rows(TABS.PURCHASE_ORDERS), poLines: _rows(TABS.PO_LINE_ITEMS), suppliers: _rows(TABS.SUPPLIERS), auditLog: _rows(TABS.AUDIT_LOG) };
+  const data = { exportedAt: new Date().toISOString(), settings: _rows(TABS.SETTINGS), vatTimeline: _rows(TABS.VAT_TIMELINE), income: _rows(TABS.INCOME), expenses: _rows(TABS.EXPENSES), pos: _rows(TABS.PURCHASE_ORDERS), poLines: _rows(TABS.PO_LINE_ITEMS), suppliers: _rows(TABS.SUPPLIERS), auditLog: _rows(TABS.AUDIT_LOG), transactions: _rows(TABS.TRANSACTIONS) };
   data.signature = _sha256(JSON.stringify(data));
   return data;
 }
@@ -641,11 +593,6 @@ function seedDemoData() {
   [{supplierId:"SUP-001",name:"Yodobashi Camera",contact:"wholesale@yodobashi.jp",paymentTermsDays:0,rating:"A+"},
    {supplierId:"SUP-002",name:"Mercari Japan",contact:"orders@mercari.jp",paymentTermsDays:0,rating:"A"},
    {supplierId:"SUP-003",name:"Don Quijote",contact:"b2b@donki.jp",paymentTermsDays:15,rating:"B"}].forEach(upsertSupplier);
-  // Products: unitCost = ¥ paid in Japan, unitPrice = ₫ sold in Vietnam (= ¥ sell × 185)
-  [{sku:"JP-CAM01",name:"Used Mirrorless Camera",category:"Finished Good",unit:"pcs",quantityOnHand:6,reorderPoint:3,reorderQuantity:5,unitCost:42000,unitPrice:60000*185,supplierId:"SUP-001",lastInboundDate:dAgo(40),lastOutboundDate:dAgo(2)},
-   {sku:"JP-WAT02",name:"Vintage Seiko Watch",category:"Finished Good",unit:"pcs",quantityOnHand:9,reorderPoint:4,reorderQuantity:8,unitCost:18000,unitPrice:27000*185,supplierId:"SUP-002",lastInboundDate:dAgo(38),lastOutboundDate:dAgo(3)},
-   {sku:"JP-SKN03",name:"Skincare Set (Shiseido)",category:"Finished Good",unit:"box",quantityOnHand:34,reorderPoint:10,reorderQuantity:20,unitCost:6500,unitPrice:9500*185,supplierId:"SUP-001",lastInboundDate:dAgo(30),lastOutboundDate:dAgo(1)},
-   {sku:"JP-TOY04",name:"Bandai Figure (rare)",category:"Finished Good",unit:"pcs",quantityOnHand:15,reorderPoint:5,reorderQuantity:10,unitCost:9000,unitPrice:14000*185,supplierId:"SUP-003",lastInboundDate:dAgo(20),lastOutboundDate:dAgo(4)}].forEach(upsertStockItem);
 
   // Credit card
   const card = upsertCreditCard({name:"Rakuten Card", issuer:"Rakuten", creditLimit:500000, statementDay:27, dueDay:10, openingBalance:0});
@@ -663,18 +610,6 @@ function seedDemoData() {
   addExpense({date:dAgo(9),description:"New laptop (on card)",vendor:"BIC Camera",category:"Software",costType:"Fixed",amountGross:140000,paymentMethod:"credit",cardId:card.cardId});
   addExpense({date:dAgo(5),description:"Groceries",vendor:"Supermarket",category:"Other",costType:"Variable",amountGross:18500,paymentMethod:"cash"});
 
-  // Buy / restock stock — ¥ expense (one cash, one on credit)
-  buyStock("JP-CAM01", 4, 42000, "cash", "", dAgo(40));
-  buyStock("JP-SKN03", 30, 6500, "credit", card.cardId, dAgo(30));
-
-  // Customer SALES orders. Vietnam sales are in ₫; one Japan sale is in ¥.
-  // Advancing to Delivery lowers stock + books trading revenue.
-  const s1 = createSale({customer:"Linh (Hanoi)", date:mAgo(1,12), sku:"JP-CAM01", quantity:2, unitPriceVnd:60000*185, currency:"VND", depositVnd:Math.round(2*60000*185*0.3)});
-  advanceSaleStatus(s1.saleId, "Delivery"); recordSalePayment(s1.saleId, Math.round(2*60000*185*0.7)); advanceSaleStatus(s1.saleId, "Awaiting Payment"); advanceSaleStatus(s1.saleId, "Done");
-  const s2 = createSale({customer:"Kenji (Osaka)", date:mAgo(0,8), sku:"JP-WAT02", quantity:1, unitPriceVnd:30000, currency:"JPY", depositVnd:0});  // sold locally in Japan, ¥
-  advanceSaleStatus(s2.saleId, "Delivery"); recordSalePayment(s2.saleId, 30000); advanceSaleStatus(s2.saleId, "Awaiting Payment"); advanceSaleStatus(s2.saleId, "Done");
-  const s3 = createSale({customer:"Trang (Da Nang)", date:dAgo(3), sku:"JP-SKN03", quantity:10, unitPriceVnd:9500*185, currency:"VND", depositVnd:0});
-
   // VND -> JPY conversions (fixed selling rate is 185 ₫/¥)
   addConversion({date:mAgo(1,15), vndAmount:12000000, rate:179, fee:3000, note:"VND strong — good rate"});
   addConversion({date:dAgo(8), vndAmount:7000000, rate:176, fee:2000, note:"Best rate so far"});
@@ -686,10 +621,18 @@ function seedDemoData() {
   upsertRecurring({cardId:card.cardId, name:"Electricity Bill", category:"Utilities", amount:8500, dayOfMonth:25, active:true});
   postDueRecurring();
 
+  // A completed PO to show history in Transactions
+  var donePO = createPO({supplierId:"SUP-002", supplierName:"Mercari Japan", orderDate:dAgo(40), expectedDate:dAgo(30),
+    paymentDueDate:dAgo(10), depositAmount: 0,
+    lineItems:[{productName:"Vintage Seiko Watch", category:"Finished Good", quantity:2, unitCost:18000, unitSellVnd:27000*185, vatApplicable:true}]});
+  advancePOStatus(donePO.poId, "Delivery", {});
+  advancePOStatus(donePO.poId, "Not Payment", {});
+  advancePOStatus(donePO.poId, "Done", {paidDate: dAgo(10)});
+
   // A supplier PO with a deposit, goods received, awaiting final supplier payment
   var demoPO = createPO({supplierId:"SUP-001", supplierName:"Yodobashi Camera", orderDate:dAgo(18), expectedDate:dAgo(8),
     paymentDueDate:today, depositAmount: Math.round(5*42000*1.1*0.3),
-    lineItems:[{sku:"JP-CAM01", quantity:5, unitCost:42000, vatApplicable:true}]});
+    lineItems:[{productName:"Used Mirrorless Camera", category:"Finished Good", quantity:5, unitCost:42000, unitSellVnd:60000*185, vatApplicable:true}]});
   advancePOStatus(demoPO.poId, "Delivery", {});
   advancePOStatus(demoPO.poId, "Not Payment", {});
   return "Demo data seeded.";
@@ -699,13 +642,11 @@ function saveIncome(tx) { if (tx.id) _deleteRow(TABS.INCOME, "id", tx.id); retur
 function saveExpense(tx) { if (tx.id) _deleteRow(TABS.EXPENSES, "id", tx.id); return addExpense(tx); }
 function deleteIncome(id) { _audit("DELETE", "Income", id, { id }, null); return _deleteRow(TABS.INCOME, "id", id); }
 function deleteExpense(id) { _audit("DELETE", "Expense", id, { id }, null); return _deleteRow(TABS.EXPENSES, "id", id); }
-function deleteStockItem(sku) { _audit("DELETE", "Stock", sku, { sku }, null); return _deleteRow(TABS.STOCK, "sku", sku); }
 function deleteSupplier(supplierId) { _audit("DELETE", "Supplier", supplierId, { supplierId }, null); return _deleteRow(TABS.SUPPLIERS, "supplierId", supplierId); }
 function deletePO(poId) { _deleteRow(TABS.PURCHASE_ORDERS, "poId", poId); const sh = _sheet(TABS.PO_LINE_ITEMS); const last = sh.getLastRow(); if (last >= 2) { const ids = sh.getRange(2, 1, last - 1, 1).getValues(); for (let i = ids.length - 1; i >= 0; i--) { if (String(ids[i][0]) === String(poId)) sh.deleteRow(i + 2); } } _audit("DELETE", "PurchaseOrder", poId, { poId }, null); return true; }
 
-function setStockQty(sku, qty) { const item = _rows(TABS.STOCK).find((s) => s.sku === sku); if (!item) throw new Error("SKU not found: " + sku); const delta = Number(qty) - Number(item.quantityOnHand); if (delta === 0) return { sku, quantityOnHand: Number(qty) }; return adjustStock(sku, delta, "Manual", ""); }
 function resetAllData() {
-  ["Income","Expenses","Stock","StockMoves","PurchaseOrders","POLineItems","Suppliers","Conversions","CreditCards","CardTxns","Recurring","Sales"].forEach((tabName) => {
+  ["Income","Expenses","PurchaseOrders","POLineItems","Suppliers","Conversions","CreditCards","CardTxns","Recurring","Transactions"].forEach((tabName) => {
     try {
       const sh = _sheet(tabName);
       const last = sh.getLastRow();
