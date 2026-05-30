@@ -2,8 +2,8 @@
  * ProfitIntelligence — Google Apps Script Backend
  * --------------------------------------------------------------
  * Frontend served by HtmlService. Persistent data stored in a
- * Google Sheets workbook (one tab per entity).
- */
+ * Google Sheets workbook (one tab per entity). test git
+ */ 
 
 // =============================================================
 // CONFIG & DYNAMIC SYNC
