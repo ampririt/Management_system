@@ -64,7 +64,7 @@ const HEADERS = {
   // Personal credit cards. Balance is derived from CardTxns (opening + charges - payments).
   CreditCards: ["cardId","name","issuer","creditLimit","statementDay","dueDay","openingBalance"],
   // Card charges (deferred, no cash impact) and payments (cash outflow on date).
-  CardTxns: ["id","cardId","date","description","category","amount","type"],
+  CardTxns: ["id","cardId","date","description","category","amount","type","poId"],
   // Recurring auto-charges (subscriptions, utilities). lastPosted = "YYYY-MM" of the last month auto-posted.
   Recurring: ["id","cardId","name","category","amount","dayOfMonth","active","lastPosted"],
   Transactions: ["id", "date", "productName", "supplierName", "quantity", "unitCost", "unitSellVnd", "totalCost", "totalSellVnd", "poId"],
@@ -401,6 +401,12 @@ function createPO(po) {
   const header = { poId, supplierId: po.supplierId || "", supplierName: po.supplierName || "", orderDate, expectedDate: po.expectedDate || "", actualDeliveryDate: "", currency: po.currency || "JPY", fxRate: po.fxRate || 1, subtotal: Math.round(subtotal), vatAmount: Math.round(vatAmount), totalGross: Math.round(subtotal + vatAmount), status: "Preparing", paymentDueDate: po.paymentDueDate || "", paidDate: "", notes: po.notes || "", paidAmount: Math.round(Number(po.depositAmount) || 0) };
   _appendObject(TABS.PURCHASE_ORDERS, header);
   (po.lineItems || []).forEach((li) => _appendObject(TABS.PO_LINE_ITEMS, { poId, productName: li.productName || "", category: li.category || "", quantity: li.quantity, unitCost: li.unitCost, unitSellVnd: li.unitSellVnd || 0, vatApplicable: !!li.vatApplicable }));
+  // If this PO is charged to a credit card, post a matching card charge so it
+  // shows up under the card and can be traced back per PO (via poId/description).
+  if (po.cardId) {
+    const firstName = (po.lineItems && po.lineItems[0] && po.lineItems[0].productName) ? " — " + po.lineItems[0].productName : "";
+    addCardTxn({ cardId: po.cardId, date: orderDate, type: "charge", amount: header.totalGross, category: "Purchase Order", description: "PO " + poId + firstName, poId: poId });
+  }
   _audit("CREATE", "PurchaseOrder", poId, null, header);
   return header;
 }
@@ -509,7 +515,7 @@ function deleteCreditCard(cardId) {
 function listCardTxns() { return _rows(TABS.CARD_TXNS); }
 function addCardTxn(tx) {
   const id = tx.id || _uuid();
-  const row = { id, cardId: tx.cardId, date: tx.date, description: tx.description || "", category: tx.category || "Other", amount: Number(tx.amount) || 0, type: tx.type === "payment" ? "payment" : "charge" };
+  const row = { id, cardId: tx.cardId, date: tx.date, description: tx.description || "", category: tx.category || "Other", amount: Number(tx.amount) || 0, type: tx.type === "payment" ? "payment" : "charge", poId: tx.poId || "" };
   _appendObject(TABS.CARD_TXNS, row);
   _audit("CREATE", "CardTxn", id, null, row);
   return row;

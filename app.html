@@ -628,6 +628,11 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                 </h3>
                 <div class="table-wrap" id="cardtxn-table"></div>
             </div>
+            <div class="panel">
+                <h3><span class="material-icons">receipt_long</span> Credit Card Spend by Purchase Order</h3>
+                <p class="subtitle" style="margin-bottom:0.8rem">Each New PO charged to a card appears here, so you can trace card spend back to the order.</p>
+                <div class="table-wrap" id="po-card-spend"></div>
+            </div>
         </section>
 
         <!-- ============ SETTINGS ============ -->
@@ -790,7 +795,7 @@ function demoSrv(fn, a, onDone) {
         case 'deleteIncome': S.income=S.income.filter(x=>x.id!==a[0]); break;
         case 'saveExpense': { const t=a[0]; const row=Object.assign({id:t.id||uuid()},t,splitVatJS(Number(t.amountGross),t.isVatApplicable!==false,vat)); if(t.id){const i=byId(S.expenses,'id',t.id); if(i>=0)S.expenses[i]=row; else S.expenses.push(row);} else S.expenses.push(row); break; }
         case 'deleteExpense': S.expenses=S.expenses.filter(x=>x.id!==a[0]); break;
-        case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let sub=0,vatA=0; li.forEach(l=>{const lt=Number(l.quantity)*Number(l.unitCost); sub+=lt; if(l.vatApplicable) vatA+=lt*vat/100;}); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',currency:'JPY',fxRate:1,subtotal:Math.round(sub),vatAmount:Math.round(vatA),totalGross:Math.round(sub+vatA),status:'Preparing',paymentDueDate:po.paymentDueDate||'',paidDate:'',notes:po.notes||'',paidAmount:Math.round(Number(po.depositAmount)||0),lineItems:li.map(l=>({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable}))}; S.pos.push(header); li.forEach(l=>S.poLines.push({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable})); break; }
+        case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let sub=0,vatA=0; li.forEach(l=>{const lt=Number(l.quantity)*Number(l.unitCost); sub+=lt; if(l.vatApplicable) vatA+=lt*vat/100;}); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',currency:'JPY',fxRate:1,subtotal:Math.round(sub),vatAmount:Math.round(vatA),totalGross:Math.round(sub+vatA),status:'Preparing',paymentDueDate:po.paymentDueDate||'',paidDate:'',notes:po.notes||'',paidAmount:Math.round(Number(po.depositAmount)||0),lineItems:li.map(l=>({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable}))}; S.pos.push(header); li.forEach(l=>S.poLines.push({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable})); if(po.cardId){ S.cardTxns.push({id:uuid(),cardId:po.cardId,date:header.orderDate,description:'PO '+poId+(li[0]&&li[0].productName?' — '+li[0].productName:''),category:'Purchase Order',amount:header.totalGross,type:'charge',poId:poId}); } break; }
         case 'advancePOStatus': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.status=a[1]; if(a[1]==='Not Payment'){ po.actualDeliveryDate=todayISO(); } if(a[1]==='Done'){ po.paidDate=todayISO(); const lines=S.poLines.filter(l=>l.poId===po.poId); lines.forEach(l=>S.transactions.push({id:uuid(), date:po.paidDate, productName:l.productName, supplierName:po.supplierName, quantity:l.quantity, unitCost:l.unitCost, unitSellVnd:l.unitSellVnd, totalCost:l.quantity*l.unitCost, totalSellVnd:l.quantity*l.unitSellVnd, poId:po.poId})); } } break; }
         case 'recordPOPayment': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.paidAmount=(Number(po.paidAmount)||0)+(Number(a[1])||0); if(po.paidAmount>=Number(po.totalGross)&&!po.paidDate) po.paidDate=todayISO(); } break; }
         case 'updatePO': { const id=a[0].poId; S.pos=S.pos.filter(p=>p.poId!==id); S.poLines=S.poLines.filter(l=>l.poId!==id); return demoSrv('createPO',a,onDone); }
@@ -1167,39 +1172,23 @@ function openPOModal(existing) {
     const supOpts = STATE.suppliers.length
         ? STATE.suppliers.map(s => `<option value="${s.supplierId}" ${po.supplierId===s.supplierId?'selected':''}>${s.name}</option>`).join('')
         : '<option value="">— add a supplier first —</option>';
-    
-    const sellYen = line.unitSellVnd ? (Number(line.unitSellVnd) / fixedRate()) : 0;
+    const cardOpts = (STATE.creditCards && STATE.creditCards.length)
+        ? '<option value="">— none (cash) —</option>' + STATE.creditCards.map(c => `<option value="${c.cardId}">${c.name}</option>`).join('')
+        : '<option value="">— no cards yet —</option>';
 
     const html = `
         <div class="form-grid-2">
             <div class="form-row"><label>PO ID</label><input id="po-id" value="${po.poId||'(auto)'}" readonly></div>
             <div class="form-row"><label>Supplier</label><select id="po-sup">${supOpts}</select></div>
         </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Order Date</label><input id="po-od" type="date" value="${dstr(po.orderDate)||todayISO()}"></div>
-            <div class="form-row"><label>Expected Delivery</label><input id="po-ed" type="date" value="${dstr(po.expectedDate)||''}"></div>
-        </div>
+        <div class="form-row"><label>Order Date</label><input id="po-od" type="date" value="${dstr(po.orderDate)||todayISO()}"></div>
         <div class="form-row"><label>Product Name</label><input id="po-name" value="${line.productName||''}"></div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Category</label>
-                <select id="po-cat">${['Finished Good','Raw Material','Service','Software','Other'].map(c=>`<option ${line.category===c?'selected':''}>${c}</option>`).join('')}</select>
-            </div>
-            <div class="form-row"><label>Quantity</label><input id="po-qty" type="number" min="1" value="${line.quantity||1}" oninput="updatePOMarginPreview()"></div>
-        </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Unit Cost (${baseSym()})</label><input id="po-cost" type="number" min="0" step="any" value="${line.unitCost||0}" oninput="updatePOMarginPreview()"></div>
-            <div class="form-row"><label>Unit Sell (${baseSym()})</label><input id="po-sell-yen" type="number" min="0" step="any" value="${Math.round(sellYen)}" oninput="updatePOMarginPreview()"></div>
-        </div>
+        <div class="form-row"><label>Quantity</label><input id="po-qty" type="number" min="1" value="${line.quantity||1}" oninput="updatePOMarginPreview()"></div>
+        <div class="form-row"><label>Unit Cost (${baseSym()})</label><input id="po-cost" type="number" min="0" step="any" value="${line.unitCost||0}" oninput="updatePOMarginPreview()"></div>
         <div class="form-row"><label>Sell Price in ${fxCode()} (${fxSym()}) — auto = ${baseSym()} × ${fixedRate()}</label>
             <input id="po-price-vnd" type="number" readonly value="0" style="background:var(--surface-2); color:var(--text-2)">
         </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Payment Due Date</label><input id="po-pd" type="date" value="${dstr(po.paymentDueDate)||''}"></div>
-            <div class="form-row"><label>Deposit / Prepaid (${baseSym()})</label><input id="po-dep" type="number" min="0" step="any" value="${po.paidAmount||0}"></div>
-        </div>
-        <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
-            <input id="po-vat" type="checkbox" ${line.vatApplicable===false?'':'checked'}><label for="po-vat" style="margin:0">VAT-applicable</label>
-        </div>
+        ${existing ? '' : `<div class="form-row"><label>Credit Card — charge this PO to a card</label><select id="po-card">${cardOpts}</select></div>`}
         <div class="form-row">
             <small id="po-margin-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small>
         </div>`;
@@ -1208,17 +1197,15 @@ function openPOModal(existing) {
         const productName = document.getElementById('po-name').value.trim();
         const qty = Number(document.getElementById('po-qty').value);
         const cost = Number(document.getElementById('po-cost').value);
-        const sellYen = Number(document.getElementById('po-sell-yen').value) || 0;
         if (!supId || !productName || qty<=0 || cost<=0) { toast('Fill all fields','error'); return false; }
         const supplier = STATE.suppliers.find(s => s.supplierId===supId);
+        const cardEl = document.getElementById('po-card');
         const payload = {
             poId: po.poId || undefined,
             supplierId: supId, supplierName: supplier?.name || '',
             orderDate: document.getElementById('po-od').value,
-            expectedDate: document.getElementById('po-ed').value,
-            paymentDueDate: document.getElementById('po-pd').value,
-            depositAmount: Number(document.getElementById('po-dep').value)||0,
-            lineItems: [{ productName, category: document.getElementById('po-cat').value, quantity: qty, unitCost: cost, unitSellVnd: Math.round(sellYen * fixedRate()), vatApplicable: document.getElementById('po-vat').checked }]
+            cardId: existing ? '' : (cardEl ? cardEl.value : ''),
+            lineItems: [{ productName, category: '', quantity: qty, unitCost: cost, unitSellVnd: Math.round(cost * fixedRate()), vatApplicable: false }]
         };
         const fnName = existing ? 'updatePO' : 'createPO';
         srv(fnName, [payload], () => { refresh(); toast(existing?'PO updated':'PO created','success'); });
@@ -1231,15 +1218,11 @@ function updatePOMarginPreview() {
     const el = document.getElementById('po-margin-preview'); if (!el) return;
     const qty = Number(document.getElementById('po-qty').value) || 0;
     const cost = Number(document.getElementById('po-cost').value) || 0;
-    const sellYen = Number(document.getElementById('po-sell-yen').value) || 0;
-    const vnd = Math.round(sellYen * fixedRate());
+    const vnd = Math.round(cost * fixedRate());
     const priceVndEl = document.getElementById('po-price-vnd');
     if (priceVndEl) priceVndEl.value = vnd;
-    const marginYen = sellYen - cost;
-    const totalMargin = marginYen * qty;
-    const pct = cost > 0 ? (marginYen / cost * 100) : 0;
-    el.innerHTML = `Selling for <strong>${fmtVnd(vnd)}</strong> in ${fxCode()} · `
-        + `Margin <strong>${fmt(marginYen)}</strong>/unit (${pct.toFixed(0)}%) · Total potential profit: <strong>${fmt(totalMargin)}</strong>`;
+    el.innerHTML = `Sell price <strong>${fmtVnd(vnd)}</strong> in ${fxCode()} (= ${fmt(cost)} × ${fixedRate()}) · `
+        + `Total cost for ${qty}: <strong>${fmt(cost * qty)}</strong>`;
 }
 
 function advancePO(poId) {
@@ -2189,6 +2172,7 @@ function renderCards() {
     document.getElementById('cc-paid').textContent = fmt(cc.paidPeriod);
 
     renderRecurring();
+    renderPOCardSpend();
 
     const grid = document.getElementById('cards-grid');
     if (!(STATE.creditCards||[]).length) { grid.innerHTML = '<div class="empty">No cards yet. Click <strong>Add Card</strong>.</div>'; }
@@ -2225,6 +2209,41 @@ function renderCards() {
             <td class="right">${fmt(r.amount)}</td>
             <td class="right"><button class="btn ghost sm" onclick="delCardTxn('${r.id}')"><span class="material-icons">delete</span></button></td>
         </tr>`).join('')}</tbody></table>`;
+}
+
+// Sum of credit-card charges grouped per Purchase Order, so each PO's card
+// spend can be traced back from the Credit Cards page.
+function renderPOCardSpend() {
+    const el = document.getElementById('po-card-spend'); if (!el) return;
+    const cardName = id => (STATE.creditCards||[]).find(c=>c.cardId===id)?.name || '—';
+    const groups = {};
+    (STATE.cardTxns||[]).forEach(t => {
+        if (t.type === 'payment') return;
+        let poId = t.poId || '';
+        if (!poId) { const m = /^PO\s+(\S+)/.exec(t.description||''); if (m) poId = m[1]; }
+        if (!poId) return;
+        if (!groups[poId]) groups[poId] = { poId, total:0, cards:new Set(), count:0, last:'' };
+        const g = groups[poId];
+        g.total += Number(t.amount)||0; g.cards.add(cardName(t.cardId)); g.count++;
+        const d = dstr(t.date); if (d > g.last) g.last = d;
+    });
+    const list = Object.values(groups).sort((a,b)=> String(b.last).localeCompare(String(a.last)));
+    if (!list.length) { el.innerHTML = '<div class="empty">No POs charged to a credit card yet. Pick a card when creating a New PO.</div>'; return; }
+    const grand = list.reduce((a,g)=> a + g.total, 0);
+    el.innerHTML = `<table class="tbl">
+        <thead><tr><th>Purchase Order</th><th>Card</th><th class="right">Charges</th><th class="right">Total Charged</th></tr></thead>
+        <tbody>${list.map(g=>{
+            const po = (STATE.pos||[]).find(p=>p.poId===g.poId);
+            const prod = po && po.lineItems && po.lineItems[0] ? po.lineItems[0].productName : '';
+            return `<tr>
+                <td><code style="font-size:0.7rem">${g.poId}</code>${prod?` <span style="color:var(--text-2)">${prod}</span>`:''}</td>
+                <td>${[...g.cards].join(', ')}</td>
+                <td class="right">${g.count}</td>
+                <td class="right" style="font-weight:700">${fmt(g.total)}</td>
+            </tr>`;
+        }).join('')}</tbody>
+        <tfoot><tr><td colspan="3" class="right" style="font-weight:700">Total credit-card spend on POs</td><td class="right" style="font-weight:800; color:var(--primary)">${fmt(grand)}</td></tr></tfoot>
+        </table>`;
 }
 
 function openCardModal(existing) {
