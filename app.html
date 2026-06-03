@@ -8,32 +8,46 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
+/* ProfitIntelligence — calm, trustworthy finance theme.
+   Cool near-white paper (not cream), deep teal-pine accent (not indigo),
+   money rendered in tabular figures. Public Sans (institutional, USWDS lineage). */
 :root {
-    --bg: #fafaf7;
+    --bg: #f2f4f5;            /* cool paper-white, chroma ~0 */
     --surface: #ffffff;
-    --surface-2: #f5f5f0;
-    --border: #e8e6df;
-    --text: #1a1d29;
-    --text-2: #5b6478;
-    --muted: #9099a8;
-    --primary: #4f46e5;
-    --primary-soft: #eef2ff;
-    --green: #10b981;
-    --green-soft: #ecfdf5;
-    --red: #ef4444;
-    --red-soft: #fef2f2;
-    --amber: #f59e0b;
-    --amber-soft: #fffbeb;
-    --blue: #3b82f6;
-    --blue-soft: #eff6ff;
-    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
-    --shadow: 0 4px 12px rgba(15,23,42,0.06);
+    --surface-2: #eceff1;
+    --surface-3: #e3e8ea;
+    --border: #dde3e6;
+    --border-strong: #c9d2d6;
+    --text: #15212a;          /* deep cool ink, ~13:1 on white */
+    --text-2: #4c5a64;        /* secondary, ~7:1 on white */
+    --muted: #647079;         /* meets 4.5:1 on white for small labels */
+    --primary: #0e6b60;       /* deep teal-pine */
+    --primary-strong: #0a554c;
+    --primary-soft: #e3efec;  /* light teal tint */
+    --green: #157a52;
+    --green-soft: #e6f1ea;
+    --red: #be403b;
+    --red-soft: #f7e9e8;
+    --amber: #9a6a16;
+    --amber-soft: #f1eadb;
+    --blue: #2c69a5;
+    --blue-soft: #e7eef5;
+    --shadow-sm: 0 1px 2px rgba(20,33,42,0.05);
+    --shadow: 0 8px 24px rgba(20,33,42,0.09);
     --radius: 12px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);   /* ease-out-quint */
+    --z-dropdown: 100; --z-sticky: 150; --z-modal-bg: 200; --z-modal: 210; --z-toast: 300;
 }
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-body { background: var(--bg); color: var(--text); min-height:100vh; font-size:14px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+* { font-family:'Public Sans', system-ui, -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); min-height:100vh; font-size:14px; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+/* Money is the hero: tabular figures so columns line up and scan clean. */
+.kpi .val, .po-card .amt, .tbl .right, .tbl td.right, .tbl .num, code,
+#t-net-real, #t-net-econ, .cnt-pill, .pill-cnt, input[type=number] {
+    font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+}
 
 /* ===== Material Icons sizing (replaces boxicons) ===== */
 .material-icons { font-family:'Material Icons'; font-weight:normal; font-style:normal; font-size:1.1rem; line-height:1; vertical-align:middle; display:inline-block; text-transform:none !important; letter-spacing:normal; white-space:nowrap; word-wrap:normal; direction:ltr; -webkit-font-feature-settings:'liga'; font-feature-settings:'liga'; -webkit-font-smoothing:antialiased; }
@@ -75,9 +89,9 @@ aside.sidebar {
 .nav-item i { font-size:1.05rem; }
 .nav-item .pill-cnt { margin-left:auto; background: var(--red-soft); color: var(--red); font-size:0.65rem; padding:1px 6px; border-radius:6px; font-weight:700; }
 
-main { padding:1.5rem 2rem; min-width:0; }
+main { padding: clamp(0.8rem, 2.2vw, 2rem); min-width:0; }
 .topbar { display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-.topbar .search { flex:1; position:relative; min-width:220px; display:flex; align-items:center; }
+.topbar .search { flex:1; position:relative; min-width:180px; display:flex; align-items:center; }
 .topbar .search .material-icons { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:1.1rem; pointer-events:none; }
 .topbar .search input {
     width:100%; padding:0.55rem 0.9rem 0.55rem 2.2rem;
@@ -101,20 +115,26 @@ main { padding:1.5rem 2rem; min-width:0; }
 .view.active { display:block; animation: fade 0.2s ease; }
 @keyframes fade { from{opacity:0;} to{opacity:1;} }
 
-h2.title { font-size:1.4rem; font-weight:700; margin-bottom:0.2rem; }
-.subtitle { color:var(--text-2); font-size:0.85rem; margin-bottom:1.4rem; }
+h2.title { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:0.25rem; text-wrap:balance; }
+.subtitle { color:var(--text-2); font-size:0.85rem; margin-bottom:1.4rem; max-width:70ch; text-wrap:pretty; }
 
 /* ===== KPI cards ===== */
-.kpi-grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); margin-bottom:1.5rem; }
+.kpi-grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(205px,1fr)); margin-bottom:1.5rem; }
 .kpi {
     background: var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:1rem 1.1rem; box-shadow:var(--shadow-sm);
+    padding:1rem 1.15rem; box-shadow:var(--shadow-sm); min-width:0; overflow:hidden;
+    transition: box-shadow 0.18s var(--ease), border-color 0.18s var(--ease);
 }
-.kpi .lbl { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
-.kpi .val { font-size:1.4rem; font-weight:700; margin:0.3rem 0; color:var(--text); }
-.kpi .delta { font-size:0.75rem; color: var(--text-2); }
+.kpi:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+.kpi .lbl { display:flex; align-items:center; gap:0.35rem; font-size:0.72rem; color:var(--text-2); letter-spacing:0.01em; font-weight:600; min-width:0; }
+.kpi .lbl span:not(.material-icons) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Money values scale with the tile and never spill out (big ₫ values run to millions). */
+.kpi .val { font-size: clamp(1.1rem, 0.7rem + 1.5vw, 1.6rem); font-weight:700; letter-spacing:-0.015em; margin:0.35rem 0 0.2rem; color:var(--text); line-height:1.12; overflow-wrap:anywhere; }
+.kpi .delta { font-size:0.75rem; color: var(--muted); }
 .kpi.accent { background: var(--primary-soft); border-color: transparent; }
-.kpi.accent .val { color: var(--primary); }
+.kpi.accent .lbl { color: var(--primary-strong); }
+.kpi.accent .val { color: var(--primary-strong); }
+.kpi.accent .delta { color: color-mix(in srgb, var(--primary-strong) 70%, transparent); }
 
 /* ===== Panels ===== */
 .panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; box-shadow:var(--shadow-sm); margin-bottom:1.25rem; }
@@ -143,14 +163,15 @@ h2.title { font-size:1.4rem; font-weight:700; margin-bottom:0.2rem; }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.5rem 0.95rem; border-radius:8px; font-size:0.82rem; font-weight:600; line-height:1.2; white-space:nowrap; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text); transition:all 0.15s; }
 .btn:hover { background:var(--surface-2); }
 .btn.primary { background: var(--primary); color:#fff; border-color: var(--primary); }
-.btn.primary:hover { background: #4338ca; }
+.btn.primary:hover { background: var(--primary-strong); border-color: var(--primary-strong); }
 .btn.success { background: var(--green); color:#fff; border-color: var(--green); }
-.btn.success:hover { background: #059669; }
+.btn.success:hover { filter: brightness(0.92); }
 .btn.danger { background: var(--red); color:#fff; border-color: var(--red); }
-.btn.danger:hover { background: #dc2626; }
+.btn.danger:hover { filter: brightness(0.92); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); padding: 0.35rem 0.55rem; }
 .btn.ghost:hover { background: var(--surface-2); color: var(--text); }
 .btn.sm { padding:0.3rem 0.65rem; font-size:0.75rem; }
+.btn:active { transform: translateY(0.5px); }
 
 /* ===== Tables ===== */
 .table-wrap { overflow-x:auto; }
@@ -191,7 +212,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 .po-card .row-btns { display:flex; gap:0.3rem; margin-top:0.5rem; }
 
 /* ===== Forms / Modal ===== */
-.modal-bg { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.4); backdrop-filter: blur(4px); z-index:100; align-items:center; justify-content:center; }
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(21,33,42,0.42); backdrop-filter: blur(3px); z-index:var(--z-modal-bg); align-items:center; justify-content:center; }
 .modal-bg.show { display:flex; }
 .modal { background:var(--surface); border-radius:14px; width:90%; max-width:520px; box-shadow: 0 20px 50px rgba(15,23,42,0.15); animation: pop 0.2s ease; }
 @keyframes pop { from { transform: scale(0.95); opacity:0; } to { transform: scale(1); opacity:1; } }
@@ -208,22 +229,71 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 .form-row input:focus, .form-row select:focus { border-color: var(--primary); }
 .form-grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:0.85rem; }
 
-/* ===== Toast ===== */
-.toast-wrap { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:0.5rem; z-index:200; }
-.toast { background: var(--surface); border:1px solid var(--border); border-left:4px solid var(--primary); padding:0.7rem 1.1rem; border-radius:8px; box-shadow: var(--shadow); font-size:0.85rem; animation: slide 0.25s ease; }
-.toast.success { border-left-color: var(--green); }
-.toast.error { border-left-color: var(--red); }
-@keyframes slide { from { transform: translateX(20px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+/* ===== Toast (status carried by a leading dot + icon, not a side-stripe) ===== */
+.toast-wrap { position:fixed; bottom:20px; right:20px; display:flex; flex-direction:column; gap:0.5rem; z-index:var(--z-toast); }
+.toast { display:flex; align-items:center; gap:0.6rem; background: var(--surface); border:1px solid var(--border-strong); padding:0.7rem 1.05rem; border-radius:10px; box-shadow: var(--shadow); font-size:0.85rem; color:var(--text); animation: slide 0.28s var(--ease); }
+.toast::before { content:""; width:9px; height:9px; border-radius:50%; background: var(--text-2); flex-shrink:0; }
+.toast.success::before { background: var(--green); }
+.toast.error::before { background: var(--red); }
+@keyframes slide { from { transform: translateX(16px); opacity:0; } to { transform: translateX(0); opacity:1; } }
 
-/* ===== Heatmap ===== */
-.heatmap { display:grid; grid-template-columns: repeat(7,1fr); gap:4px; max-width:440px; }
-.heatmap .day { aspect-ratio:1; border-radius:6px; display:grid; place-items:center; font-size:0.7rem; color:var(--text-2); border:1px solid var(--border); background: var(--surface); }
-.h-pos-1 { background: #d1fae5 !important; border-color: transparent !important; }
-.h-pos-2 { background: #6ee7b7 !important; border-color: transparent !important; color: #064e3b !important; }
-.h-pos-3 { background: #10b981 !important; border-color: transparent !important; color: #fff !important; }
-.h-neg-1 { background: #fee2e2 !important; border-color: transparent !important; }
-.h-neg-2 { background: #fca5a5 !important; border-color: transparent !important; color: #7f1d1d !important; }
-.h-neg-3 { background: #ef4444 !important; border-color: transparent !important; color:#fff !important; }
+/* ===== Daily Net Heatmap — full month calendar, one detailed cell per day ===== */
+.cf-month-scroll { overflow-x:auto; padding-bottom:0.4rem; }
+.cf-month-head, .cf-month-grid {
+    display:grid; grid-template-columns: repeat(7, minmax(98px, 1fr)); gap:7px;
+    min-width:700px;   /* keep day cells legible; scroll on narrow screens */
+}
+.cf-month-head { margin-bottom:7px; }
+.cf-month-head span {
+    font-size:0.66rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+    color:var(--muted); padding-left:3px;
+}
+.cf-month-head span.we { color:var(--text-2); }
+.cf-day {
+    min-height:92px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface); padding:7px 9px 9px;
+    display:flex; flex-direction:column; position:relative; overflow:hidden;
+    transition: outline 0.12s var(--ease);
+}
+.cf-day .dnum { font-size:0.72rem; font-weight:600; color:var(--text); opacity:0.6; }
+.cf-day .dbody { margin-top:auto; display:flex; flex-direction:column; gap:1px; min-width:0; }
+.cf-day .dnet {
+    font-size:0.95rem; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums;
+    line-height:1.15; letter-spacing:-0.01em; display:flex; align-items:baseline; gap:3px;
+    white-space:nowrap;
+}
+.cf-day .dnet .arw { font-size:0.66rem; font-weight:700; line-height:1; }
+.cf-day .dflow {
+    font-size:0.6rem; font-weight:500; color:var(--text); opacity:0.68;
+    font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cf-day.quiet { background:var(--bg); }
+.cf-day.quiet .dnum { opacity:0.35; }
+.cf-day.blank { background:transparent; border-color:transparent; }
+.cf-day.today { outline:2px solid var(--primary); outline-offset:1px; border-color:transparent; }
+.cf-day.today .dnum { opacity:1; color:var(--primary); font-weight:700; }
+.cf-day:not(.blank):hover { outline:2px solid var(--primary); outline-offset:1px; }
+.cf-legend { display:flex; align-items:center; gap:0.4rem; font-size:0.68rem; color:var(--muted); margin-top:0.6rem; flex-wrap:wrap; }
+.cf-legend .swatch { width:13px; height:13px; border-radius:3px; border:1px solid var(--border); }
+/* Heat tints kept light so the dark ink inside each cell stays ≥7:1 (WCAG AA). */
+.h-pos-1 { background: #edf5f0 !important; border-color: transparent !important; }
+.h-pos-2 { background: #d8ebe0 !important; border-color: transparent !important; }
+.h-pos-3 { background: #c0ddcd !important; border-color: transparent !important; }
+.h-pos-4 { background: #a6cdb6 !important; border-color: transparent !important; }
+.h-neg-1 { background: #f8ebe9 !important; border-color: transparent !important; }
+.h-neg-2 { background: #f2d8d4 !important; border-color: transparent !important; }
+.h-neg-3 { background: #e9bdb7 !important; border-color: transparent !important; }
+.h-neg-4 { background: #dd9d96 !important; border-color: transparent !important; }
+/* Analytics strip under the KPIs */
+.cf-stats { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:0.75rem 1.25rem; padding:0.25rem 0; }
+.cf-stat .s-lbl { font-size:0.68rem; color:var(--muted); font-weight:600; }
+.cf-stat .s-val { font-size:1.05rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; margin-top:1px; }
+.cf-stat .s-sub { font-size:0.68rem; color:var(--text-2); }
+.cf-rangetag { font-size:0.68rem; font-weight:600; color:var(--text-2); background:var(--surface-2); border:1px solid var(--border); padding:1px 7px; border-radius:6px; white-space:nowrap; }
+.cf-heat-nav { display:inline-flex; align-items:center; gap:0.25rem; vertical-align:middle; margin-left:0.4rem; }
+.cf-heat-nav .heat-arrow { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; background:var(--surface); border:1px solid var(--border); color:var(--text-2); cursor:pointer; font-size:1rem; line-height:1; font-family:inherit; transition: all 0.15s; }
+.cf-heat-nav .heat-arrow:hover { background:var(--primary-soft); color:var(--primary); border-color:var(--primary-soft); }
+.cf-heat-nav .heat-month { font-family:inherit; font-size:0.75rem; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:0.2rem 0.45rem; outline:none; }
 
 .two-col { display:grid; grid-template-columns: 2fr 1fr; gap:1.25rem; }
 
@@ -255,15 +325,12 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 .bestseller-card {
-    background: linear-gradient(135deg, #fff7ed, #ffedd5);
-    border: 1px solid #fed7aa; border-radius:12px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius:12px;
     padding:1rem 1.2rem; position:relative;
-    transition: transform 0.15s;
+    transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-.bestseller-card:hover { transform: translateY(-2px); }
-.bestseller-card.rank-1 { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color:#fcd34d; }
-.bestseller-card.rank-2 { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-color:#cbd5e1; }
-.bestseller-card.rank-3 { background: linear-gradient(135deg, #fef2e8, #fde4cf); border-color:#fed7aa; }
+.bestseller-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .bestseller-card .rank-badge {
     position:absolute; top:0.7rem; right:0.9rem;
     font-size:1.4rem;
@@ -282,10 +349,25 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 .mobile-menu:hover, .mobile-close:hover { background:var(--surface-2); }
 .mobile-close { position:absolute; top:0.8rem; right:0.8rem; }
 
-/* ===== Responsive breakpoints ===== */
-@media (max-width: 1200px) {
-    .quick-presets .preset-btn:nth-child(n+4) { display:none; }
+/* ===== Responsive ===== */
+/* Global safety: never let the page scroll sideways; let grid/flex children shrink.
+   overflow-x:clip (not hidden) so it doesn't break the sticky sidebar. */
+html, body { max-width:100%; overflow-x:clip; }
+img, canvas, svg, video { max-width:100%; }
+.panel, .view, main, .two-col, .kpi-grid, .kanban, .po-card, .modal .body { min-width:0; }
+.table-wrap { -webkit-overflow-scrolling:touch; }
+
+/* Comfortable tap targets on touch devices (toward the 44px WCAG guide). */
+@media (pointer: coarse) {
+    .btn { min-height:40px; }
+    .btn.sm { min-height:34px; }
+    .btn.ghost.sm { min-width:36px; min-height:36px; }
+    .nav-item { padding:0.72rem 0.7rem; }
+    .form-row input, .form-row select { min-height:44px; }
+    .tbl td { padding-top:0.8rem; padding-bottom:0.8rem; }
 }
+
+@media (max-width: 1200px) { .quick-presets .preset-btn:nth-child(n+4) { display:none; } }
 @media (max-width: 1100px) {
     .two-col { grid-template-columns: 1fr; }
     .kanban { grid-template-columns: 1fr 1fr; }
@@ -293,39 +375,84 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 @media (max-width: 900px) {
     .shell { grid-template-columns: 1fr; }
     aside.sidebar {
-        position:fixed; top:0; left:0; height:100vh; width:260px;
-        z-index:999; transform:translateX(-100%);
+        position:fixed; top:0; left:0; height:100vh; height:100dvh; width:min(82vw, 290px);
+        z-index:var(--z-sticky); transform:translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 20px 0 50px rgba(0,0,0,0.1);
+        box-shadow: 20px 0 50px rgba(0,0,0,0.12);
     }
     aside.sidebar.open { transform:translateX(0); }
     .mobile-menu, .mobile-close { display:inline-flex; align-items:center; justify-content:center; }
-    main { padding: 1rem; }
     .topbar { gap: 0.5rem; }
-    .topbar .search { flex-basis: 100%; order: 4; margin-top: 0.5rem; }
-    .date-filter { flex: 1; min-width: 200px; }
-    .quick-presets { display: none; } /* Hide presets on mobile to save space, or make them a dropdown */
+    .topbar .search { flex-basis: 100%; order: 4; margin-top: 0.4rem; }
+    .date-filter { flex: 1; min-width: 180px; }
     .chip { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
-    h2.title { font-size: 1.25rem; }
+    h2.title { font-size: 1.3rem; }
+}
+@media (max-width: 760px) {
+    .quick-presets { display:none; }   /* presets fold away; the date inputs stay */
+    .topbar .search { display:none; }  /* reclaim the row (search is not wired up yet) */
 }
 @media (max-width: 640px) {
     .kanban { grid-template-columns: 1fr; }
-    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .kpi { padding: 0.75rem; }
-    .kpi .val { font-size: 1.1rem; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+    .kpi { padding: 0.8rem 0.85rem; }
+    .kpi .lbl { flex-wrap:wrap; }
     .panel { padding: 1rem; border-radius: 10px; }
-    .modal { width: 95%; margin: 10px; }
-    .form-grid-2 { grid-template-columns: 1fr; gap: 0.5rem; }
+    .panel h3 { font-size:0.9rem; }
+    .form-grid-2 { grid-template-columns: 1fr; gap: 0.6rem; }
     .bestseller-grid { grid-template-columns: 1fr; }
-    .topbar .chip:nth-child(n+5) { display: none; } /* Hide some chips on very small screens */
+    .cf-stats { grid-template-columns: repeat(2, 1fr); }
+    .chart-box { height: 240px; }
+    /* Modals become bottom sheets — easier to reach one-handed. */
+    .modal-bg { align-items: flex-end; }
+    .modal { width: 100%; max-width: none; margin: 0; border-radius: 16px 16px 0 0; max-height: 92dvh; }
+    .modal .body { max-height: 70dvh; }
 }
-@media (max-width: 480px) {
+@media (max-width: 430px) {
     .kpi-grid { grid-template-columns: 1fr; }
-    .topbar .date-filter { flex-direction: column; align-items: stretch; }
-    .date-filter input { width: 100%; text-align: center; }
+    .cf-stats { grid-template-columns: 1fr; }
+    .topbar .date-filter { width: 100%; }
+    .date-filter input[type=date] { min-width: 0; flex: 1; }
+    .tbl th, .tbl td { padding: 0.55rem 0.6rem; font-size: 0.8rem; }
+    .toast-wrap { left: 12px; right: 12px; bottom: 12px; }
+    .toast { width: 100%; }
+    .panel-actions { gap: 0.3rem; }
+    .panel-actions .btn { padding: 0.45rem 0.6rem; }
+    /* Keep only the live sync chip; the static info chips are redundant on tiny screens. */
+    .topbar .chip:not(.sync) { display:none; }
+}
+@media (max-width: 360px) {
+    h2.title { font-size: 1.15rem; }
+    .brand h1 { font-size: 0.9rem; }
 }
 
 .empty { text-align:center; padding:2rem 1rem; color: var(--muted); font-size:0.85rem; }
+
+/* ===== Accessibility: visible focus + reduced motion (WCAG AA) ===== */
+:where(button, a, input, select, textarea, [tabindex], .nav-item, .preset-btn, [contenteditable]):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 7px;
+}
+.form-row input:focus-visible, .form-row select:focus-visible { outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Large numeric values must wrap inside their box, never spill out (₫ runs to millions). */
+#t-net-real, #t-net-econ, .cf-stat .s-val, .po-card .amt, .kpi .val { overflow-wrap:anywhere; min-width:0; }
+.cf-stat { min-width:0; }
+/* The Trading "Net Profit" panel: let its value columns shrink and wrap instead of overflowing. */
+#t-net-real, #t-net-econ { max-width:100%; }
+
+/* ===== Loading skeleton (perceived speed during Sheets round-trips) ===== */
+body.busy .kpi .val { color: transparent; border-radius:6px; background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%); background-size:400% 100%; animation: shimmer 1.2s var(--ease) infinite; }
+@keyframes shimmer { from { background-position:100% 0; } to { background-position:-100% 0; } }
 </style>
 </head>
 <body>
@@ -352,7 +479,6 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
         <div class="nav-item" data-view="suppliers"><span class="material-icons">apartment</span> Suppliers</div>
         <div class="nav-label">Analysis</div>
         <div class="nav-item" data-view="cashflow"><span class="material-icons">calendar_month</span> Cash Flow</div>
-        <div class="nav-item" data-view="pl"><span class="material-icons">bar_chart</span> P&amp;L</div>
         <div class="nav-label">System</div>
         <div class="nav-item" data-view="settings"><span class="material-icons">settings</span> Settings</div>
     </aside>
@@ -375,7 +501,6 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             </div>
             <div class="chip"><span class="material-icons">payments</span> <span id="chip-cur">¥ JPY</span></div>
             <div class="chip"><span class="material-icons">lock</span> <span id="chip-fx">Fixed 1¥ = 185₫</span></div>
-            <div class="chip alert"><span class="material-icons">notifications</span> <span id="chip-alerts">0</span></div>
             <div class="chip sync" id="sync-chip" title="Sync status"><span class="material-icons" id="sync-icon">cloud_queue</span> <span id="sync-text">…</span></div>
         </div>
 
@@ -385,6 +510,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <p class="subtitle" id="dash-period-label">Showing data for this month</p>
             <div class="kpi-grid">
                 <div class="kpi accent"><div class="lbl"><span class="material-icons">payments</span> Cash on Hand (¥)</div><div class="val" id="k-cash">¥0</div><div class="delta" id="k-cash-sub">liquid yen</div></div>
+                <div class="kpi accent"><div class="lbl"><span class="material-icons">savings</span> VND Wallet</div><div class="val" id="k-dong">₫0</div><div class="delta" id="k-dong-sub">held, awaiting exchange</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">credit_card</span> Credit Available</div><div class="val" id="k-credit">¥0</div><div class="delta" id="k-credit-sub">¥0 used of ¥0</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">trending_up</span> Income</div><div class="val" id="k-inc">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">trending_down</span> Expenses</div><div class="val" id="k-exp">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
@@ -500,62 +626,85 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
         <!-- ============ CASH FLOW ============ -->
         <section class="view" id="view-cashflow">
             <h2 class="title">Cash Flow</h2>
-            <p class="subtitle">Income in, expenses + card payments out. Card charges are deferred (not counted until paid).</p>
+            <p class="subtitle">Cash in (income + ¥ from exchanges) vs cash out (expenses, card payments, cash POs), for the selected date range. Card charges are deferred — counted only when paid.</p>
             <div class="kpi-grid">
-                <div class="kpi"><div class="lbl"><span class="material-icons">south_west</span> Inflow (month)</div><div class="val" style="color:var(--green)" id="cf-in">¥0</div></div>
-                <div class="kpi"><div class="lbl"><span class="material-icons">north_east</span> Outflow (month)</div><div class="val" style="color:var(--red)" id="cf-out">¥0</div></div>
-                <div class="kpi accent"><div class="lbl"><span class="material-icons">account_balance</span> Net (month)</div><div class="val" id="cf-net">¥0</div></div>
-                <div class="kpi"><div class="lbl"><span class="material-icons">savings</span> End Cash Balance</div><div class="val" id="cf-end">¥0</div><div class="delta">running balance</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">south_west</span> Inflow <span id="cf-range-1" class="cf-rangetag"></span></div><div class="val" style="color:var(--green)" id="cf-in">¥0</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">north_east</span> Outflow <span id="cf-range-2" class="cf-rangetag"></span></div><div class="val" style="color:var(--red)" id="cf-out">¥0</div></div>
+                <div class="kpi accent"><div class="lbl"><span class="material-icons">account_balance</span> Net flow</div><div class="val" id="cf-net">¥0</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">savings</span> Cash at range end</div><div class="val" id="cf-end">¥0</div><div class="delta" id="cf-end-sub">balance on the last day</div></div>
+            </div>
+            <div class="panel">
+                <h3><span class="material-icons">query_stats</span> Range Analysis</h3>
+                <div class="cf-stats">
+                    <div class="cf-stat"><div class="s-lbl">Avg net / day</div><div class="s-val" id="cf-avg">¥0</div><div class="s-sub" id="cf-avg-sub">over 0 days</div></div>
+                    <div class="cf-stat"><div class="s-lbl">Best day</div><div class="s-val" style="color:var(--green)" id="cf-best">¥0</div><div class="s-sub" id="cf-best-sub">—</div></div>
+                    <div class="cf-stat"><div class="s-lbl">Worst day</div><div class="s-val" style="color:var(--red)" id="cf-worst">¥0</div><div class="s-sub" id="cf-worst-sub">—</div></div>
+                    <div class="cf-stat"><div class="s-lbl">Positive vs negative days</div><div class="s-val" id="cf-posneg">0 / 0</div><div class="s-sub" id="cf-active-sub">0 days with activity</div></div>
+                    <div class="cf-stat"><div class="s-lbl">Biggest expense day</div><div class="s-val" style="color:var(--red)" id="cf-bigout">¥0</div><div class="s-sub" id="cf-bigout-sub">—</div></div>
+                </div>
             </div>
             <div class="two-col">
                 <div class="panel">
-                    <h3><span class="material-icons">show_chart</span> Running Cash Balance (this month)</h3>
+                    <h3><span class="material-icons">show_chart</span> Running Cash Balance <span id="cf-bal-range" class="cf-rangetag"></span></h3>
                     <div class="chart-box"><canvas id="cfBalanceChart"></canvas></div>
                 </div>
                 <div class="panel">
-                    <h3><span class="material-icons">bar_chart</span> Inflow vs Outflow (6 months)</h3>
+                    <h3><span class="material-icons">bar_chart</span> Inflow vs Outflow by month</h3>
                     <div class="chart-box" style="height:260px;"><canvas id="cfBarsChart"></canvas></div>
                 </div>
             </div>
             <div class="panel">
-                <h3><span class="material-icons">calendar_month</span> Daily Heatmap (this month)</h3>
-                <div class="heatmap" id="heatmap"></div>
+                <h3><span class="material-icons">calendar_month</span> Daily Net Heatmap <span id="cf-heat-range" class="cf-rangetag"></span>
+                    <span class="cf-heat-nav">
+                        <button class="heat-arrow" onclick="heatMonthStep(-1)" title="Previous month">‹</button>
+                        <input type="month" id="heat-month" class="heat-month" onchange="onHeatMonthChange()">
+                        <button class="heat-arrow" onclick="heatMonthStep(1)" title="Next month">›</button>
+                    </span>
+                </h3>
+                <p class="subtitle" style="margin-bottom:0.9rem">One cell per day in the selected month, showing the day's net cash flow with its inflow and outflow. Cell shade scales with size, relative to the busiest day that month. This calendar has its own month filter, independent of the date range above.</p>
+                <div class="cf-month-scroll">
+                    <div class="cf-month-head">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span class="we">Sat</span><span class="we">Sun</span>
+                    </div>
+                    <div class="cf-month-grid" id="heatmap"></div>
+                </div>
+                <div class="cf-legend">
+                    <span>Bigger net out</span>
+                    <span class="swatch h-neg-4"></span><span class="swatch h-neg-3"></span><span class="swatch h-neg-2"></span><span class="swatch h-neg-1"></span>
+                    <span class="swatch" style="background:var(--bg)"></span>
+                    <span class="swatch h-pos-1"></span><span class="swatch h-pos-2"></span><span class="swatch h-pos-3"></span><span class="swatch h-pos-4"></span>
+                    <span>Bigger net in</span>
+                </div>
             </div>
         </section>
 
         <!-- ============ P&L ============ -->
-        <section class="view" id="view-pl">
-            <h2 class="title">Profit &amp; Loss</h2>
-            <p class="subtitle">Auto-generated from ledger</p>
-            <div class="panel" id="pl-panel"></div>
-        </section>
-
         <!-- ============ TRADING & FX ============ -->
         <section class="view" id="view-trading">
             <h2 class="title" id="t-title">Trading &amp; FX — Profit in YEN</h2>
             <p class="subtitle" id="t-subtitle"></p>
 
             <div class="kpi-grid">
-                <div class="kpi"><div class="lbl" id="t-rev-lbl">Sales Revenue</div><div class="val" id="t-rev">₫0</div><div class="delta" id="t-rev-sub">period sales</div></div>
-                <div class="kpi"><div class="lbl" id="t-cogs-lbl">COGS</div><div class="val" id="t-cogs">¥0</div><div class="delta">goods sold, at cost</div></div>
-                <div class="kpi accent"><div class="lbl" id="t-margin-lbl">Trading Margin</div><div class="val" id="t-margin">¥0</div><div class="delta" id="t-margin-sub">markup profit</div></div>
-                <div class="kpi"><div class="lbl" id="t-fx-lbl">Realized FX</div><div class="val" id="t-fx">¥0</div><div class="delta">conversion timing</div></div>
-                <div class="kpi"><div class="lbl" id="t-wallet-lbl">Wallet</div><div class="val" id="t-wallet">₫0</div><div class="delta" id="t-wallet-sub">held, not converted</div></div>
+                <div class="kpi accent"><div class="lbl" id="t-wallet-lbl">VND Wallet</div><div class="val" id="t-wallet">₫0</div><div class="delta" id="t-wallet-sub">held, not converted</div></div>
+                <div class="kpi accent"><div class="lbl" id="t-yenwallet-lbl">YEN Wallet</div><div class="val" id="t-yenwallet">¥0</div><div class="delta" id="t-yenwallet-sub">cash on hand</div></div>
+                <div class="kpi"><div class="lbl" id="t-atfixed-lbl">Wallet value @fixed</div><div class="val" id="t-atfixed">¥0</div><div class="delta" id="t-atfixed-sub">VND ÷ fixed rate</div></div>
+                <div class="kpi"><div class="lbl" id="t-fx-lbl">Realized FX profit</div><div class="val" id="t-fx">¥0</div><div class="delta">gain from past exchanges</div></div>
                 <div class="kpi"><div class="lbl" id="t-unreal-lbl">Unrealized FX</div><div class="val" id="t-unreal">¥0</div><div class="delta" id="t-unreal-sub">on held funds at rate now</div></div>
+                <div class="kpi"><div class="lbl" id="t-rev-lbl">VND received (lifetime)</div><div class="val" id="t-rev">₫0</div><div class="delta" id="t-rev-sub">from finished orders</div></div>
             </div>
 
             <div class="panel" style="border:1px solid var(--primary-soft); background:var(--primary-soft);">
                 <h3 style="margin-bottom:0.5rem"><span class="material-icons">account_balance_wallet</span> Net Profit (<span id="t-base-code">YEN</span>)</h3>
                 <div style="display:flex; flex-wrap:wrap; gap:1.5rem; align-items:flex-end;">
                     <div>
-                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Realized net profit</div>
+                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Realized FX profit</div>
                         <div id="t-net-real" style="font-size:1.9rem; font-weight:800; color:var(--primary);">¥0</div>
-                        <div style="font-size:0.72rem; color:var(--text-2);">Trading margin + Realized FX</div>
+                        <div style="font-size:0.72rem; color:var(--text-2);">gain locked in from past exchanges</div>
                     </div>
                     <div>
-                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">+ Unrealized = Economic profit</div>
+                        <div style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600;">+ Unrealized (at rate now)</div>
                         <div id="t-net-econ" style="font-size:1.3rem; font-weight:700; color:var(--text);">¥0</div>
-                        <div style="font-size:0.72rem; color:var(--text-2);">includes paper gain on held funds</div>
+                        <div style="font-size:0.72rem; color:var(--text-2);">paper gain if you converted the wallet now</div>
                     </div>
                     <div style="margin-left:auto;">
                         <label id="t-rate-lbl" style="font-size:0.7rem; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; font-weight:600; display:block;">Current market rate</label>
@@ -563,17 +712,6 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                                style="margin-top:0.3rem; padding:0.5rem 0.7rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; width:140px; font-family:inherit;">
                         <div id="t-rate-hint" style="font-size:0.72rem; color:var(--text-2);">lower than fixed = good time to convert</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- "What if I convert now?" projection -->
-            <div class="panel" style="border-left:4px solid var(--green);">
-                <h3 style="margin-bottom:0.4rem"><span class="material-icons">lightbulb</span> If you convert your whole wallet now…</h3>
-                <div id="t-whatif" style="font-size:0.92rem; color:var(--text-2); line-height:1.7;"></div>
-                <div style="display:flex; flex-wrap:wrap; gap:2rem; margin-top:0.7rem;">
-                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">You'd receive</div><div id="t-wi-receive" style="font-size:1.4rem; font-weight:800; color:var(--text);">¥0</div></div>
-                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Total realized profit</div><div id="t-wi-total" style="font-size:1.4rem; font-weight:800; color:var(--primary);">¥0</div></div>
-                    <div><div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600;">Profit margin</div><div id="t-wi-pct" style="font-size:1.4rem; font-weight:800; color:var(--green);">0%</div></div>
                 </div>
             </div>
 
@@ -633,7 +771,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
         <!-- ============ SETTINGS ============ -->
         <section class="view" id="view-settings">
             <h2 class="title">Settings</h2>
-            <p class="subtitle">Currencies, fixed rate, VAT, data management</p>
+            <p class="subtitle">Currencies, fixed rate, opening cash, data management</p>
             <div class="two-col">
                 <div class="panel">
                     <h3><span class="material-icons">settings</span> Configuration</h3>
@@ -653,7 +791,10 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                             baseline each real conversion is compared against on the Trading page.
                         </small>
                     </div>
-                    <br><div class="form-row"><label>VAT Rate (%)</label><input id="set-vat" type="number" value="10" min="0" max="30" step="0.5"></div>
+                    <br><div class="form-row"><label>Opening Cash on Hand (<span id="set-opening-sym">¥</span>)</label>
+                        <input id="set-opening" type="number" value="0" min="0" step="any">
+                        <small style="color:var(--muted); font-size:0.72rem; margin-top:0.25rem">Your starting base-currency cash, before any income. The YEN wallet builds on top of this.</small>
+                    </div>
                     <br><button class="btn primary" onclick="saveSettings()"><span class="material-icons">save</span> Save Settings</button>
                 </div>
                 <div class="panel">
@@ -689,8 +830,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
 // STATE — hydrated from Google Sheets via google.script.run
 // ============================================================
 let STATE = {
-    settings: { currencySymbol:'¥', currencyCode:'JPY', vatRate:10, monthlyIncomeGoal:0, monthlyProfitGoal:0, minLiquidity:0, fixedRateVND:185, foreignSymbol:'₫', foreignCode:'VND' },
-    vatTimeline: [],
+    settings: { currencySymbol:'¥', currencyCode:'JPY', monthlyIncomeGoal:0, monthlyProfitGoal:0, minLiquidity:0, fixedRateVND:185, foreignSymbol:'₫', foreignCode:'VND', openingCashYen:0 },
     income: [], expenses: [],
     pos: [], poLines: [],
     suppliers: [],
@@ -709,27 +849,23 @@ const uuid = () => 'id-' + Math.random().toString(36).slice(2,10);
 const clone = o => JSON.parse(JSON.stringify(o));
 const isoDaysAgo = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
 const isoMonthDay = (monthsAgo, day) => { const d=new Date(); d.setMonth(d.getMonth()-monthsAgo); d.setDate(day); return d.toISOString().slice(0,10); };
-function splitVatJS(gross, applicable, rate) { if (!applicable) return {amountVat:0, amountNet:gross}; const v=gross*(rate/(100+rate)); return {amountVat:Math.round(v), amountNet:Math.round(gross-v)}; }
-
 function buildMock() {
-    const vat = 10, FX = 185;
-    const inc = (date,desc,client,cat,gross,cur='JPY',app=false) => Object.assign({id:uuid(),date,description:desc,client,category:cat,amountGross:gross,isVatApplicable:app,currency:cur},splitVatJS(gross,app,vat));
-    const exp = (date,desc,vendor,cat,ct,gross,pm='cash',cardId='',cur='JPY',app=true) => Object.assign({id:uuid(),date,description:desc,vendor,category:cat,costType:ct,amountGross:gross,isVatApplicable:app,linkedPOId:'',currency:cur,paymentMethod:pm,cardId},splitVatJS(gross,app,vat));
+    const FX = 185;
+    const inc = (date,desc,client,cat,amount) => ({id:uuid(),date,description:desc,client,category:cat,amount});
+    const exp = (date,desc,vendor,cat,ct,amount,pm='cash',cardId='') => ({id:uuid(),date,description:desc,vendor,category:cat,costType:ct,amount,linkedPOId:'',paymentMethod:pm,cardId});
     const cardId = 'CARD-RAK';
 
     const income = [
-        inc(isoMonthDay(2,25),'Salary','Day job','Services',280000,'JPY'),
-        inc(isoMonthDay(1,25),'Salary','Day job','Services',280000,'JPY'),
-        inc(isoMonthDay(0,25),'Salary','Day job','Services',280000,'JPY'),
-        inc(isoDaysAgo(12),'Freelance design','Acme','Services',95000,'JPY',true),
-        inc(isoDaysAgo(20),'Cash tips (Vietnam pop-up)','Walk-in','Sales',3200000,'VND')
+        inc(isoMonthDay(2,25),'Salary','Day job','Services',280000),
+        inc(isoMonthDay(1,25),'Salary','Day job','Services',280000),
+        inc(isoMonthDay(0,25),'Salary','Day job','Services',280000),
+        inc(isoDaysAgo(12),'Freelance design','Acme','Services',95000)
     ];
     const expenses = [
         exp(isoMonthDay(2,1),'Rent','Landlord','Rent','Fixed',85000,'cash'),
         exp(isoMonthDay(1,1),'Rent','Landlord','Rent','Fixed',85000,'cash'),
         exp(isoMonthDay(0,1),'Rent','Landlord','Rent','Fixed',85000,'cash'),
         exp(isoDaysAgo(9),'New laptop (on card)','BIC Camera','Software','Fixed',140000,'credit',cardId),
-        exp(isoDaysAgo(18),'Shipping to Vietnam','Yamato','Travel','Variable',24000,'cash'),
         exp(isoDaysAgo(6),'Groceries','Supermarket','Other','Variable',18500,'cash')
     ];
     const conversions = [
@@ -750,27 +886,27 @@ function buildMock() {
         {id:uuid(),cardId,name:'Netflix',category:'Subscription',amount:1980,dayOfMonth:5,active:true,lastPosted:lastM},
         {id:uuid(),cardId,name:'Electricity Bill',category:'Utilities',amount:8500,dayOfMonth:25,active:true,lastPosted:''}
     ];
-    // Supplier purchase orders with deposit / balance tracking (¥)
-    const mkPO = (poId,product,cat,qty,cost,sellVnd,status,paid,daysAgo,dueDays) => {
-        const sub = qty*cost, vatA = Math.round(sub*vat/100), total = sub+vatA;
-        return {poId,supplierId:'SUP-001',supplierName:'Yodobashi Camera',orderDate:isoDaysAgo(daysAgo),expectedDate:isoDaysAgo(daysAgo-7),actualDeliveryDate: status==='Done'||status==='Not Payment'?isoDaysAgo(daysAgo-7):'',currency:'JPY',fxRate:1,subtotal:sub,vatAmount:vatA,totalGross:total,status,paymentDueDate:isoDaysAgo(daysAgo-dueDays),paidDate: paid>=total?isoDaysAgo(daysAgo-10):'',notes:'',paidAmount:paid,
-            lineItems:[{poId,productName:product,category:cat,quantity:qty,unitCost:cost,unitSellVnd:sellVnd,vatApplicable:true}]};
+    // Purchase orders — ¥ paid at creation (cash/credit); VND received at "Done". One ¥ price per line.
+    const mkPO = (poId,product,cat,qty,unitSell,status,pm,daysAgo,card='') => {
+        const totalYen = qty*unitSell;
+        return {poId,supplierId:'SUP-001',supplierName:'Yodobashi Camera',orderDate:isoDaysAgo(daysAgo),expectedDate:isoDaysAgo(daysAgo-7),actualDeliveryDate: status==='Done'||status==='Not Payment'?isoDaysAgo(daysAgo-7):'',totalYen,totalVnd:Math.round(totalYen*FX),status,paymentMethod:pm,cardId:card,paidDate: status==='Done'?isoDaysAgo(daysAgo-10):'',notes:'',
+            lineItems:[{poId,productName:product,category:cat,quantity:qty,unitSell}]};
     };
     const pos = [
-        mkPO('PO-1001','Used Mirrorless Camera','Finished Good',5,42000,60000*FX,'Not Payment',Math.round(5*42000*1.1*0.3),20,30),
-        mkPO('PO-1002','Shiseido Skincare Set','Finished Good',20,6500,9500*FX,'Done',Math.round(20*6500*1.1),55,30),
-        mkPO('PO-1003','Vintage Seiko Watch','Finished Good',8,18000,27000*FX,'Delivery',0,8,30)
+        mkPO('PO-1001','Used Mirrorless Camera','Finished Good',5,60000,'Not Payment','credit',20,cardId),
+        mkPO('PO-1002','Shiseido Skincare Set','Finished Good',20,9500,'Done','cash',55),
+        mkPO('PO-1003','Vintage Seiko Watch','Finished Good',8,27000,'Delivery','cash',8)
     ];
     const poLines = pos.flatMap(p=>p.lineItems);
 
     const transactions = pos.filter(p=>p.status==='Done').flatMap(p => p.lineItems.map(l => ({
-        id:uuid(), date:p.paidDate, productName:l.productName, supplierName:p.supplierName, quantity:l.quantity, unitCost:l.unitCost, unitSellVnd:l.unitSellVnd, totalCost:l.quantity*l.unitCost, totalSellVnd:l.quantity*l.unitSellVnd, poId:p.poId
+        id:uuid(), date:p.paidDate, productName:l.productName, supplierName:p.supplierName, quantity:l.quantity, unitSell:l.unitSell, totalVnd:Math.round(l.quantity*l.unitSell*FX), poId:p.poId
     })));
 
     return {
         ok:true,
-        settings:{currencySymbol:'¥',currencyCode:'JPY',vatRate:vat,monthlyIncomeGoal:300000,monthlyProfitGoal:120000,minLiquidity:100000,fixedRateVND:FX,foreignSymbol:'₫',foreignCode:'VND'},
-        vatTimeline:[], income, expenses, pos, poLines, suppliers:[
+        settings:{currencySymbol:'¥',currencyCode:'JPY',monthlyIncomeGoal:300000,monthlyProfitGoal:120000,minLiquidity:100000,fixedRateVND:FX,foreignSymbol:'₫',foreignCode:'VND',openingCashYen:800000},
+        income, expenses, pos, poLines, suppliers:[
             {supplierId:'SUP-001',name:'Yodobashi Camera',contact:'wholesale@yodobashi.jp',paymentTermsDays:0,rating:'A+'},
             {supplierId:'SUP-002',name:'Mercari Japan',contact:'orders@mercari.jp',paymentTermsDays:0,rating:'A'},
             {supplierId:'SUP-003',name:'Don Quijote',contact:'b2b@donki.jp',paymentTermsDays:15,rating:'B'}
@@ -784,15 +920,14 @@ function demoSrv(fn, a, onDone) {
     const S = STATE; const done = r => { if (onDone) onDone(r); else renderAll(); };
     const byId = (arr,k,v)=>arr.findIndex(x=>String(x[k])===String(v));
     const upsert = (arr,k,row)=>{ const i=byId(arr,k,row[k]); if(i>=0) arr[i]=Object.assign({},arr[i],row); else arr.push(row); };
-    const vat = Number(S.settings.vatRate)||10;
+    const FX = fixedRate();
     switch(fn) {
-        case 'saveIncome': { const t=a[0]; const row=Object.assign({id:t.id||uuid()},t,splitVatJS(Number(t.amountGross),t.isVatApplicable!==false,vat)); if(t.id){const i=byId(S.income,'id',t.id); if(i>=0)S.income[i]=row; else S.income.push(row);} else S.income.push(row); break; }
+        case 'saveIncome': { const t=a[0]; const row={id:t.id||uuid(),date:t.date,description:t.description||'',client:t.client||'',category:t.category||'Uncategorized',amount:Number(t.amount)||0}; if(t.id){const i=byId(S.income,'id',t.id); if(i>=0)S.income[i]=row; else S.income.push(row);} else S.income.push(row); break; }
         case 'deleteIncome': S.income=S.income.filter(x=>x.id!==a[0]); break;
-        case 'saveExpense': { const t=a[0]; const row=Object.assign({id:t.id||uuid()},t,splitVatJS(Number(t.amountGross),t.isVatApplicable!==false,vat)); if(t.id){const i=byId(S.expenses,'id',t.id); if(i>=0)S.expenses[i]=row; else S.expenses.push(row);} else S.expenses.push(row); break; }
+        case 'saveExpense': { const t=a[0]; const row={id:t.id||uuid(),date:t.date,description:t.description||'',vendor:t.vendor||'',category:t.category||'Uncategorized',costType:t.costType||'Variable',amount:Number(t.amount)||0,linkedPOId:t.linkedPOId||'',paymentMethod:t.paymentMethod==='credit'?'credit':'cash',cardId:t.cardId||''}; if(t.id){const i=byId(S.expenses,'id',t.id); if(i>=0)S.expenses[i]=row; else S.expenses.push(row);} else S.expenses.push(row); break; }
         case 'deleteExpense': S.expenses=S.expenses.filter(x=>x.id!==a[0]); break;
-        case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let sub=0,vatA=0; li.forEach(l=>{const lt=Number(l.quantity)*Number(l.unitCost); sub+=lt; if(l.vatApplicable) vatA+=lt*vat/100;}); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',currency:'JPY',fxRate:1,subtotal:Math.round(sub),vatAmount:Math.round(vatA),totalGross:Math.round(sub+vatA),status:'Preparing',paymentDueDate:po.paymentDueDate||'',paidDate:'',notes:po.notes||'',paidAmount:Math.round(Number(po.depositAmount)||0),lineItems:li.map(l=>({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable}))}; S.pos.push(header); li.forEach(l=>S.poLines.push({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable})); break; }
-        case 'advancePOStatus': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.status=a[1]; if(a[1]==='Not Payment'){ po.actualDeliveryDate=todayISO(); } if(a[1]==='Done'){ po.paidDate=todayISO(); const lines=S.poLines.filter(l=>l.poId===po.poId); lines.forEach(l=>S.transactions.push({id:uuid(), date:po.paidDate, productName:l.productName, supplierName:po.supplierName, quantity:l.quantity, unitCost:l.unitCost, unitSellVnd:l.unitSellVnd, totalCost:l.quantity*l.unitCost, totalSellVnd:l.quantity*l.unitSellVnd, poId:po.poId})); } } break; }
-        case 'recordPOPayment': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.paidAmount=(Number(po.paidAmount)||0)+(Number(a[1])||0); if(po.paidAmount>=Number(po.totalGross)&&!po.paidDate) po.paidDate=todayISO(); } break; }
+        case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let totalYen=0; li.forEach(l=>{totalYen+=Number(l.quantity)*Number(l.unitSell);}); totalYen=Math.round(totalYen); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',totalYen,totalVnd:Math.round(totalYen*FX),status:'Preparing',paymentMethod:po.paymentMethod==='credit'?'credit':'cash',cardId:po.cardId||'',paidDate:'',notes:po.notes||'',lineItems:li.map(l=>({poId,productName:l.productName,category:l.category,quantity:Number(l.quantity)||0,unitSell:Number(l.unitSell)||0}))}; S.pos.push(header); header.lineItems.forEach(l=>S.poLines.push(Object.assign({},l))); break; }
+        case 'advancePOStatus': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.status=a[1]; if(a[1]==='Not Payment'){ po.actualDeliveryDate=todayISO(); } if(a[1]==='Done'){ po.paidDate=todayISO(); const lines=S.poLines.filter(l=>l.poId===po.poId); lines.forEach(l=>S.transactions.push({id:uuid(), date:po.paidDate, productName:l.productName, supplierName:po.supplierName, quantity:l.quantity, unitSell:l.unitSell, totalVnd:Math.round(l.quantity*l.unitSell*FX), poId:po.poId})); } } break; }
         case 'updatePO': { const id=a[0].poId; S.pos=S.pos.filter(p=>p.poId!==id); S.poLines=S.poLines.filter(l=>l.poId!==id); return demoSrv('createPO',a,onDone); }
         case 'deletePO': S.pos=S.pos.filter(p=>p.poId!==a[0]); S.poLines=S.poLines.filter(l=>l.poId!==a[0]); break;
         case 'upsertSupplier': upsert(S.suppliers,'supplierId',a[0]); break;
@@ -831,6 +966,7 @@ function srv(fn, args, onDone, onErr) {
 function setBusy(b) {
     BUSY = b;
     document.body.style.cursor = b ? 'progress' : '';
+    document.body.classList.toggle('busy', b);
 }
 // ============================================================
 // SYNC STATUS INDICATOR
@@ -851,7 +987,7 @@ function setSyncStatus(state, detail) {
 function refresh() {
     if (DEMO) {
         if (!STATE.__seeded) { STATE = Object.assign(STATE, buildMock()); STATE.__seeded = true; }
-        ['vatTimeline','income','expenses','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
+        ['income','expenses','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring','transactions'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
         setSyncStatus('demo');
         renderAll();
         return;
@@ -883,8 +1019,8 @@ function refresh() {
                 return;
             }
             STATE = Object.assign(STATE, data);
-            ['vatTimeline','income','expenses','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
-            if (!STATE.settings) STATE.settings = { currencySymbol:'¥', currencyCode:'JPY', vatRate:10 };
+            ['income','expenses','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring','transactions'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
+            if (!STATE.settings) STATE.settings = { currencySymbol:'¥', currencyCode:'JPY' };
             console.log('[refresh] STATE counts: pos='+STATE.pos.length+' suppliers='+STATE.suppliers.length+' income='+STATE.income.length+' expenses='+STATE.expenses.length);
             setSyncStatus('synced');
             renderAll();
@@ -972,7 +1108,7 @@ const dstr = v => {
 const sum = (arr, k) => arr.reduce((a,b)=> a + Number(b[k]||0), 0);
 const inMonth = r => { const d = dstr(r.date); return d >= monthStart() && d <= monthEnd(); };
 function getPOLines(poId) { return STATE.poLines.filter(l => l.poId === poId); }
-function firstLine(po) { return getPOLines(po.poId)[0] || { sku:'', quantity:0, unitCost:0, vatApplicable:true }; }
+function firstLine(po) { return getPOLines(po.poId)[0] || { productName:'', category:'', quantity:0, unitSell:0 }; }
 
 // ============================================================
 // NAV
@@ -982,6 +1118,8 @@ document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', 
     n.classList.add('active');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + n.dataset.view).classList.add('active');
+    CURRENT_VIEW = n.dataset.view;
+    if (!DEMO || STATE.__seeded) renderView(CURRENT_VIEW);   // draw this page with the latest data
     window.scrollTo(0,0);
 }));
 
@@ -1012,7 +1150,7 @@ document.getElementById('modal').addEventListener('click', e => { if (e.target.i
 // INCOME
 // ============================================================
 function openIncomeModal(existing) {
-    const e = existing || { date: todayISO(), description:'', client:'', category:'Sales', amountGross:0, isVatApplicable:true };
+    const e = existing || { date: todayISO(), description:'', client:'', category:'Sales', amount:0 };
     const html = `
         <div class="form-grid-2">
             <div class="form-row"><label>Date</label><input id="i-date" type="date" value="${dstr(e.date)||todayISO()}"></div>
@@ -1021,33 +1159,20 @@ function openIncomeModal(existing) {
         <div class="form-row"><label>Description</label><input id="i-desc" value="${e.description||''}"></div>
         <div class="form-grid-2">
             <div class="form-row"><label>Category</label>
-                <select id="i-cat">${['Sales','Licensing','Services','Support','Hardware Sale','Other'].map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select>
+                <select id="i-cat">${['Sales','Licensing','Services','Support','FX Conversion','Other'].map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select>
             </div>
-            <div class="form-row"><label>Currency</label>
-                <select id="i-cur">
-                    <option value="${baseCode()}" ${(e.currency||baseCode())===baseCode()?'selected':''}>${baseCode()} (${baseSym()}) — home wallet</option>
-                    <option value="${fxCode()}" ${e.currency===fxCode()?'selected':''}>${fxCode()} (${fxSym()}) — foreign wallet</option>
-                </select>
-            </div>
-        </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Gross Amount</label><input id="i-amt" type="number" min="0" step="any" value="${e.amountGross||0}"></div>
-            <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem; padding-top:1.4rem;">
-                <input id="i-vat" type="checkbox" ${e.isVatApplicable===false?'':'checked'}> <label for="i-vat" style="margin:0">Subject to VAT</label>
-            </div>
+            <div class="form-row"><label>Amount (${baseSym()})</label><input id="i-amt" type="number" min="0" step="any" value="${e.amount||0}"></div>
         </div>`;
     openModal(existing?'Edit Income':'Add Income', html, () => {
-        const gross = Number(document.getElementById('i-amt').value);
-        if (!gross || gross<=0) { toast('Enter a valid amount','error'); return false; }
+        const amount = Number(document.getElementById('i-amt').value);
+        if (!amount || amount<=0) { toast('Enter a valid amount','error'); return false; }
         const tx = {
             id: existing?.id || '',
             date: document.getElementById('i-date').value,
             client: document.getElementById('i-client').value,
             description: document.getElementById('i-desc').value,
             category: document.getElementById('i-cat').value,
-            amountGross: gross,
-            currency: document.getElementById('i-cur').value,
-            isVatApplicable: document.getElementById('i-vat').checked
+            amount
         };
         srv('saveIncome', [tx], () => { refresh(); toast(existing?'Income updated':'Income added','success'); });
         return true;
@@ -1060,7 +1185,7 @@ function delIncome(id) { if (!confirm('Delete?')) return; srv('deleteIncome', [i
 // EXPENSE
 // ============================================================
 function openExpenseModal(existing) {
-    const e = existing || { date: todayISO(), description:'', vendor:'', category:'Software', costType:'Variable', amountGross:0, isVatApplicable:true };
+    const e = existing || { date: todayISO(), description:'', vendor:'', category:'Software', costType:'Variable', amount:0 };
     const html = `
         <div class="form-grid-2">
             <div class="form-row"><label>Date</label><input id="e-date" type="date" value="${dstr(e.date)||todayISO()}"></div>
@@ -1069,38 +1194,27 @@ function openExpenseModal(existing) {
         <div class="form-row"><label>Description</label><input id="e-desc" value="${e.description||''}"></div>
         <div class="form-grid-2">
             <div class="form-row"><label>Category</label>
-                <select id="e-cat">${['Software','Rent','Salaries','Raw Materials','Utilities','Marketing','Travel','Other'].map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select>
+                <select id="e-cat">${['Software','Rent','Salaries','Utilities','Marketing','Travel','Other'].map(c=>`<option ${e.category===c?'selected':''}>${c}</option>`).join('')}</select>
             </div>
             <div class="form-row"><label>Cost Type</label>
-                <select id="e-ct">${['Fixed','Variable','COGS'].map(c=>`<option ${e.costType===c?'selected':''}>${c}</option>`).join('')}</select>
+                <select id="e-ct">${['Fixed','Variable'].map(c=>`<option ${e.costType===c?'selected':''}>${c}</option>`).join('')}</select>
             </div>
         </div>
         <div class="form-grid-2">
-            <div class="form-row"><label>Gross Amount</label><input id="e-amt" type="number" min="0" step="any" value="${e.amountGross||0}"></div>
-            <div class="form-row"><label>Currency</label>
-                <select id="e-cur">
-                    <option value="${baseCode()}" ${(e.currency||baseCode())===baseCode()?'selected':''}>${baseCode()} (${baseSym()})</option>
-                    <option value="${fxCode()}" ${e.currency===fxCode()?'selected':''}>${fxCode()} (${fxSym()})</option>
-                </select>
-            </div>
-        </div>
-        <div class="form-grid-2">
+            <div class="form-row"><label>Amount (${baseSym()})</label><input id="e-amt" type="number" min="0" step="any" value="${e.amount||0}"></div>
             <div class="form-row"><label>Paid with</label>
                 <select id="e-pm" onchange="document.getElementById('e-card-row').style.display=this.value==='credit'?'flex':'none'">
-                    <option value="cash" ${e.paymentMethod!=='credit'?'selected':''}>Cash / bank (wallet)</option>
+                    <option value="cash" ${e.paymentMethod!=='credit'?'selected':''}>Cash / bank (¥ wallet)</option>
                     <option value="credit" ${e.paymentMethod==='credit'?'selected':''}>Credit card (deferred)</option>
                 </select>
             </div>
-            <div class="form-row" id="e-card-row" style="display:${e.paymentMethod==='credit'?'flex':'none'}"><label>Card</label>
-                <select id="e-card">${(STATE.creditCards||[]).map(c=>`<option value="${c.cardId}" ${e.cardId===c.cardId?'selected':''}>${c.name}</option>`).join('')||'<option value="">— no cards —</option>'}</select>
-            </div>
         </div>
-        <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
-            <input id="e-vat" type="checkbox" ${e.isVatApplicable===false?'':'checked'}><label for="e-vat" style="margin:0">Subject to VAT</label>
+        <div class="form-row" id="e-card-row" style="display:${e.paymentMethod==='credit'?'flex':'none'}"><label>Card</label>
+            <select id="e-card">${cardOptions(e.cardId)}</select>
         </div>`;
     openModal(existing?'Edit Expense':'Add Expense', html, () => {
-        const gross = Number(document.getElementById('e-amt').value);
-        if (!gross || gross<=0) { toast('Enter a valid amount','error'); return false; }
+        const amount = Number(document.getElementById('e-amt').value);
+        if (!amount || amount<=0) { toast('Enter a valid amount','error'); return false; }
         const pm = document.getElementById('e-pm').value;
         const tx = {
             id: existing?.id || '',
@@ -1109,11 +1223,9 @@ function openExpenseModal(existing) {
             description: document.getElementById('e-desc').value,
             category: document.getElementById('e-cat').value,
             costType: document.getElementById('e-ct').value,
-            amountGross: gross,
-            currency: document.getElementById('e-cur').value,
+            amount,
             paymentMethod: pm,
-            cardId: pm === 'credit' ? document.getElementById('e-card').value : '',
-            isVatApplicable: document.getElementById('e-vat').checked
+            cardId: pm === 'credit' ? document.getElementById('e-card').value : ''
         };
         srv('saveExpense', [tx], () => { refresh(); toast(existing?'Expense updated':'Expense added','success'); });
         return true;
@@ -1162,13 +1274,11 @@ let PO_EXPANDED = {};   // per-column "show all" toggle for the workflow board
 function togglePOExpand(st) { PO_EXPANDED[st] = !PO_EXPANDED[st]; renderPOs(); }
 
 function openPOModal(existing) {
-    const line = existing ? firstLine(existing) : { productName:'', category:'Finished Good', quantity:1, unitCost:0, unitSellVnd:0, vatApplicable:true };
-    const po = existing || { poId:'', supplierId: STATE.suppliers[0]?.supplierId||'', orderDate: todayISO(), expectedDate:'', paymentDueDate:'', status:'Preparing' };
+    const line = existing ? firstLine(existing) : { productName:'', category:'Finished Good', quantity:1, unitSell:0 };
+    const po = existing || { poId:'', supplierId: STATE.suppliers[0]?.supplierId||'', orderDate: todayISO(), expectedDate:'', status:'Preparing', paymentMethod:'cash', cardId:'' };
     const supOpts = STATE.suppliers.length
         ? STATE.suppliers.map(s => `<option value="${s.supplierId}" ${po.supplierId===s.supplierId?'selected':''}>${s.name}</option>`).join('')
         : '<option value="">— add a supplier first —</option>';
-    
-    const sellYen = line.unitSellVnd ? (Number(line.unitSellVnd) / fixedRate()) : 0;
 
     const html = `
         <div class="form-grid-2">
@@ -1187,18 +1297,21 @@ function openPOModal(existing) {
             <div class="form-row"><label>Quantity</label><input id="po-qty" type="number" min="1" value="${line.quantity||1}" oninput="updatePOMarginPreview()"></div>
         </div>
         <div class="form-grid-2">
-            <div class="form-row"><label>Unit Cost (${baseSym()})</label><input id="po-cost" type="number" min="0" step="any" value="${line.unitCost||0}" oninput="updatePOMarginPreview()"></div>
-            <div class="form-row"><label>Unit Sell (${baseSym()})</label><input id="po-sell-yen" type="number" min="0" step="any" value="${Math.round(sellYen)}" oninput="updatePOMarginPreview()"></div>
-        </div>
-        <div class="form-row"><label>Sell Price in ${fxCode()} (${fxSym()}) — auto = ${baseSym()} × ${fixedRate()}</label>
-            <input id="po-price-vnd" type="number" readonly value="0" style="background:var(--surface-2); color:var(--text-2)">
+            <div class="form-row"><label>Unit Sell (${baseSym()})</label><input id="po-sell-yen" type="number" min="0" step="any" value="${line.unitSell||0}" oninput="updatePOMarginPreview()"></div>
+            <div class="form-row"><label>Auto = ${fxCode()} (${fxSym()}) @ ${fixedRate()}</label>
+                <input id="po-price-vnd" type="number" readonly value="0" style="background:var(--surface-2); color:var(--text-2)">
+            </div>
         </div>
         <div class="form-grid-2">
-            <div class="form-row"><label>Payment Due Date</label><input id="po-pd" type="date" value="${dstr(po.paymentDueDate)||''}"></div>
-            <div class="form-row"><label>Deposit / Prepaid (${baseSym()})</label><input id="po-dep" type="number" min="0" step="any" value="${po.paidAmount||0}"></div>
-        </div>
-        <div class="form-row" style="flex-direction:row; align-items:center; gap:0.5rem;">
-            <input id="po-vat" type="checkbox" ${line.vatApplicable===false?'':'checked'}><label for="po-vat" style="margin:0">VAT-applicable</label>
+            <div class="form-row"><label>Pay with</label>
+                <select id="po-pm" onchange="document.getElementById('po-card-row').style.display=this.value==='credit'?'flex':'none'">
+                    <option value="cash" ${po.paymentMethod!=='credit'?'selected':''}>Cash / bank (¥ wallet)</option>
+                    <option value="credit" ${po.paymentMethod==='credit'?'selected':''}>Credit card (deferred)</option>
+                </select>
+            </div>
+            <div class="form-row" id="po-card-row" style="display:${po.paymentMethod==='credit'?'flex':'none'}"><label>Card</label>
+                <select id="po-card">${cardOptions(po.cardId)}</select>
+            </div>
         </div>
         <div class="form-row">
             <small id="po-margin-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small>
@@ -1207,18 +1320,18 @@ function openPOModal(existing) {
         const supId = document.getElementById('po-sup').value;
         const productName = document.getElementById('po-name').value.trim();
         const qty = Number(document.getElementById('po-qty').value);
-        const cost = Number(document.getElementById('po-cost').value);
-        const sellYen = Number(document.getElementById('po-sell-yen').value) || 0;
-        if (!supId || !productName || qty<=0 || cost<=0) { toast('Fill all fields','error'); return false; }
+        const unitSell = Number(document.getElementById('po-sell-yen').value) || 0;
+        if (!supId || !productName || qty<=0 || unitSell<=0) { toast('Fill all fields','error'); return false; }
+        const pm = document.getElementById('po-pm').value;
         const supplier = STATE.suppliers.find(s => s.supplierId===supId);
         const payload = {
             poId: po.poId || undefined,
             supplierId: supId, supplierName: supplier?.name || '',
             orderDate: document.getElementById('po-od').value,
             expectedDate: document.getElementById('po-ed').value,
-            paymentDueDate: document.getElementById('po-pd').value,
-            depositAmount: Number(document.getElementById('po-dep').value)||0,
-            lineItems: [{ productName, category: document.getElementById('po-cat').value, quantity: qty, unitCost: cost, unitSellVnd: Math.round(sellYen * fixedRate()), vatApplicable: document.getElementById('po-vat').checked }]
+            paymentMethod: pm,
+            cardId: pm === 'credit' ? document.getElementById('po-card').value : '',
+            lineItems: [{ productName, category: document.getElementById('po-cat').value, quantity: qty, unitSell }]
         };
         const fnName = existing ? 'updatePO' : 'createPO';
         srv(fnName, [payload], () => { refresh(); toast(existing?'PO updated':'PO created','success'); });
@@ -1230,16 +1343,12 @@ function openPOModal(existing) {
 function updatePOMarginPreview() {
     const el = document.getElementById('po-margin-preview'); if (!el) return;
     const qty = Number(document.getElementById('po-qty').value) || 0;
-    const cost = Number(document.getElementById('po-cost').value) || 0;
     const sellYen = Number(document.getElementById('po-sell-yen').value) || 0;
     const vnd = Math.round(sellYen * fixedRate());
     const priceVndEl = document.getElementById('po-price-vnd');
     if (priceVndEl) priceVndEl.value = vnd;
-    const marginYen = sellYen - cost;
-    const totalMargin = marginYen * qty;
-    const pct = cost > 0 ? (marginYen / cost * 100) : 0;
-    el.innerHTML = `Selling for <strong>${fmtVnd(vnd)}</strong> in ${fxCode()} · `
-        + `Margin <strong>${fmt(marginYen)}</strong>/unit (${pct.toFixed(0)}%) · Total potential profit: <strong>${fmt(totalMargin)}</strong>`;
+    el.innerHTML = `You pay <strong>${fmt(sellYen*qty)}</strong> now to buy ${qty}. `
+        + `When the customer pays, you receive <strong>${fmtVnd(vnd*qty)}</strong> into the ${fxCode()} wallet.`;
 }
 
 function advancePO(poId) {
@@ -1258,7 +1367,7 @@ function saveSettings() {
         currencyCode: document.getElementById('set-code').value || 'JPY',
         foreignSymbol: document.getElementById('set-fsym').value || '₫',
         foreignCode: document.getElementById('set-fcode').value || 'VND',
-        vatRate: Number(document.getElementById('set-vat').value) || 0,
+        openingCashYen: Number(document.getElementById('set-opening').value) || 0,
         fixedRateVND: Number(document.getElementById('set-fixed').value) || 185
     };
     // Update local state immediately so the product modal picks up the new rate
@@ -1287,8 +1396,24 @@ function resetAll() {
 // ============================================================
 // RENDERERS
 // ============================================================
-function renderAll() {
-    // Ensure fixed selling rate has a default if Sheet column is empty
+// Which view is on screen. Mutations re-render only this view (+ chrome), not all 11
+// pages and ~12 charts — a full getBootstrap re-read no longer rebuilds the whole app.
+let CURRENT_VIEW = 'dashboard';
+const VIEW_RENDERERS = {
+    dashboard:    () => renderDashboard(),
+    income:       () => renderIncome(),
+    expenses:     () => renderExpenses(),
+    cards:        () => renderCards(),
+    trading:      () => renderTrading(),
+    transactions: () => renderTransactions(),
+    po:           () => renderPOs(),
+    suppliers:    () => renderSuppliers(),
+    cashflow:     () => renderCashFlow(),
+    settings:     () => {},   // settings fields are synced in renderChrome
+};
+
+// Cheap, always-current header + nav badge + settings field sync. No charts.
+function renderChrome() {
     if (!STATE.settings.fixedRateVND) STATE.settings.fixedRateVND = 185;
     document.getElementById('chip-cur').textContent = baseSym() + ' ' + baseCode();
     document.getElementById('chip-fx').textContent = `Fixed 1${baseSym()} = ${fixedRate()}${fxSym()}`;
@@ -1300,21 +1425,31 @@ function renderAll() {
     document.getElementById('set-code').value = baseCode();
     document.getElementById('set-fsym').value = fxSym();
     document.getElementById('set-fcode').value = fxCode();
-    document.getElementById('set-vat').value = STATE.settings.vatRate;
+    document.getElementById('set-opening').value = Number(STATE.settings.openingCashYen) || 0;
+    document.getElementById('set-opening-sym').textContent = baseSym();
     document.getElementById('set-fixed').value = STATE.settings.fixedRateVND;
     document.getElementById('set-fixed-hint').textContent = `e.g. 1 ${baseSym()} = ${fixedRate()} ${fxSym()}. Used to value foreign sales in your base currency and as the baseline each real conversion is compared against on the Trading page.`;
-    renderDashboard();
-    renderIncome(); renderExpenses();
-    renderPOs(); renderTransactions(); renderSuppliers();
-    renderCashFlow(); renderPL();
-    renderTrading(); renderCards();
+    const unpaid = (STATE.pos||[]).filter(p => p.status==='Not Payment');
+    const overdue = (STATE.pos||[]).filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO());
+    document.getElementById('badge-po').textContent = unpaid.length + overdue.length;
+}
+
+// Render just the active page (its tables + charts).
+function renderView(view) {
+    (VIEW_RENDERERS[view] || (()=>{}))();
+}
+
+function renderAll() {
+    renderChrome();
+    renderView(CURRENT_VIEW);
 }
 
 let CHARTS = {};
 function chartUp(id, cfg) {
     if (CHARTS[id]) CHARTS[id].destroy();
-    Chart.defaults.color = '#5b6478';
-    Chart.defaults.borderColor = '#e5e8f0';
+    Chart.defaults.color = '#4c5a64';
+    Chart.defaults.borderColor = '#dde3e6';
+    Chart.defaults.font.family = "'Public Sans', system-ui, sans-serif";
     // Force a sane default size — overrides Chart.js' 2:1 auto aspect ratio
     cfg.options = cfg.options || {};
     cfg.options.responsive = true;
@@ -1325,55 +1460,22 @@ function chartUp(id, cfg) {
 // ============================================================
 // SHARED COMPUTATIONS (trading, cards, cash) — all in YEN unless noted
 // ============================================================
-// Trading profit in YEN, from two independent channels (all-time, to match the
-// running ₫ wallet — held ₫ never "expire", so a period filter would desync them):
-//
-//   A) Product margin — selling goods. Each sale is compared against its ¥ cost:
-//        • sold in ₫  → revenue valued at the FIXED rate (₫ ÷ fixed) for the comparison
-//        • sold in ¥  → revenue counted directly (no FX involved)
-//      margin@fixed = Σ(revenue→¥) − Σ COGS¥
-//
-//   B) Realized FX — exchanging ₫ ⇄ ¥. Each conversion's gain/loss is measured
-//      against the fixed rate:  Σ (¥ received − ₫ converted ÷ fixed)
-//
-//   Realized profit (¥) = margin@fixed + realized FX.
-function tradingMetrics() {
-    const fx = fixedRate();
-    const base = baseCode(), fcur = fxCode();
-    const stockBy = {}; STATE.stock.forEach(p => { stockBy[p.sku] = p; });
-
-    // --- Channel A: product trading margin -----------------------------------
-    // A sale realizes margin once stock has shipped (status past "Preparing").
-    let revVnd = 0, revYen = 0, cogs = 0;   // revVnd = ₫ (foreign) sales, revYen = ¥-direct sales
-    (STATE.sales || []).forEach(s => {
-        if (s.status === 'Preparing') return;            // not shipped yet → no margin
-        const p = stockBy[s.sku] || {};
-        const q = Number(s.quantity) || 0;
-        const total = Number(s.totalVnd) || 0;           // amount in the sale's OWN currency
-        cogs += q * (Number(p.unitCost) || 0);           // COGS is always in ¥
-        if (saleCur(s) === fcur) revVnd += total; else revYen += total;
-    });
-    const revAtFixed = revVnd / fx + revYen;             // all sales valued in ¥ (₫ at the fixed rate)
-    const marginAtFixed = revAtFixed - cogs;             // baseline trading profit in ¥
-
-    // --- Channel B: realized FX from currency exchange -----------------------
-    let realizedFx = 0;
-    (STATE.conversions || []).forEach(c => {
-        const vnd = Number(c.vndAmount) || 0;
-        const net = (Number(c.jpyReceived) || 0) - (Number(c.fee) || 0);
-        realizedFx += net - vnd / fx;                    // ¥ gained/lost vs converting at the fixed rate
-    });
-    const vndConvAll = (STATE.conversions || []).reduce((a,c)=> a + (Number(c.vndAmount)||0), 0);
-
-    // ₫ still held = the live foreign-currency cash wallet (so trading view = dashboard).
-    const wallet = wallets().dong;
-    const netReal = marginAtFixed + realizedFx;          // realized profit in ¥ (₫ valued at fixed)
-    return { fx, base, fcur, revVnd, revYen, revAtFixed, cogs, marginAtFixed,
-             realizedFx, wallet, vndConvAll, netReal };
-}
 // Credit-card metrics: balance = opening + charges − payments (all-time).
 // Credit-card balances. A card's balance = opening + manual charges − payments + any
 // expense charged to it (paymentMethod 'credit'). Credit charges never touch cash.
+// A card's balance = opening + manual charges − payments + credit expenses + credit POs.
+// <option>s for a card picker, each showing the card's remaining available credit.
+function cardOptions(selectedId) {
+    const cards = STATE.creditCards || [];
+    if (!cards.length) return '<option value="">— no cards —</option>';
+    const cm = cardMetrics();
+    return cards.map(c => {
+        const b = cm.byCard[c.cardId];
+        const avail = (Number(c.creditLimit)||0) - (b ? b.balance : 0);
+        const low = avail < (Number(c.creditLimit)||0) * 0.1;
+        return `<option value="${c.cardId}" ${selectedId===c.cardId?'selected':''}>${c.name} — ${fmt(avail)} available${low?' ⚠':''}</option>`;
+    }).join('');
+}
 function cardMetrics() {
     const txns = STATE.cardTxns || [];
     const byCard = {};
@@ -1385,117 +1487,19 @@ function cardMetrics() {
     });
     (STATE.expenses || []).forEach(e => {
         if (e.paymentMethod !== 'credit') return;
-        const b = byCard[e.cardId] || firstCard(); if (b) b.balance += Number(e.amountGross) || 0;
+        const b = byCard[e.cardId] || firstCard(); if (b) b.balance += Number(e.amount) || 0;
+    });
+    (STATE.pos || []).forEach(p => {
+        if (p.paymentMethod !== 'credit') return;
+        const b = byCard[p.cardId] || firstCard(); if (b) b.balance += Number(p.totalYen) || 0;
     });
     const used = Object.values(byCard).reduce((a,b)=> a + b.balance, 0);
     const limit = (STATE.creditCards || []).reduce((a,c)=> a + (Number(c.creditLimit)||0), 0);
     const chargedPeriod = sum(txns.filter(t => t.type !== 'payment' && inMonth(t)), 'amount')
-        + sum((STATE.expenses||[]).filter(e => e.paymentMethod === 'credit' && inMonth(e)), 'amountGross');
+        + sum((STATE.expenses||[]).filter(e => e.paymentMethod === 'credit' && inMonth(e)), 'amount')
+        + sum((STATE.pos||[]).filter(p => p.paymentMethod === 'credit' && inMonth({date:p.orderDate})), 'totalYen');
     const paidPeriod    = sum(txns.filter(t => t.type === 'payment' && inMonth(t)), 'amount');
     return { byCard, used, limit, available: limit - used, chargedPeriod, paidPeriod };
-}
-// Two cash wallets + credit. All money flows resolve here:
-//   ¥ wallet  = ¥ income − ¥ cash-expenses − card payments + ¥ from conversions + ¥ sales
-//   ₫ wallet  = ₫ income/sales − ₫ converted − ₫ cash-expenses
-// Credit-charged expenses defer the cash hit (they sit in the card balance instead).
-function wallets() {
-    const base = baseCode(), fx = fxCode();
-    let yen = 0, dong = 0;
-    (STATE.income || []).forEach(r => { const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong += amt; else yen += amt; });
-    (STATE.expenses || []).forEach(r => { if (r.paymentMethod === 'credit') return; const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong -= amt; else yen -= amt; });
-    (STATE.sales || []).forEach(s => { const amt = Number(s.paidVnd)||0; if ((s.currency||fx) === base) yen += amt; else dong += amt; });
-    (STATE.conversions || []).forEach(c => { dong -= Number(c.vndAmount)||0; yen += (Number(c.jpyReceived)||0) - (Number(c.fee)||0); });
-    (STATE.cardTxns || []).forEach(t => { if (t.type === 'payment') yen -= Number(t.amount)||0; });
-    return { yen, dong, credit: cardMetrics() };
-}
-function cashPosition() { return wallets().yen; }
-
-function renderDashboard() {
-    const inc = STATE.income.filter(inMonth);
-    const exp = STATE.expenses.filter(inMonth);
-    const gross = sum(inc,'amountGross');
-    const totalExp = sum(exp,'amountGross');
-    const unpaid = STATE.pos.filter(p => p.status==='Not Payment');
-    const t = tradingMetrics();
-    const w = wallets();
-    const cc = w.credit;
-
-    document.getElementById('k-cash').textContent = fmt(w.yen);
-    document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
-    document.getElementById('k-credit').textContent = fmt(cc.available);
-    document.getElementById('k-credit-sub').textContent = `${fmt(cc.used)} used of ${fmt(cc.limit)}`;
-    document.getElementById('k-inc').textContent = fmt(gross);
-    document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
-    document.getElementById('k-exp').textContent = fmt(totalExp);
-    document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
-
-    renderSupplierRank();
-
-    document.getElementById('badge-po').textContent = unpaid.length + STATE.pos.filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
-    document.getElementById('chip-alerts').textContent = unpaid.length;
-
-    // Generate last 6 months labels
-    const months = last6Months();
-
-    const bucket = (arr, key) => months.map(m => {
-        return arr.reduce((total, row) => {
-            const rowDate = dstr(row.date);
-            if (rowDate && rowDate.substring(0, 7) === m) {
-                return total + (Number(row[key]) || 0);
-            }
-            return total;
-        }, 0);
-    });
-
-    chartUp('trendChart', {
-        type:'line',
-        data: { 
-            labels: months.map(m => {
-                const [y, mm] = m.split('-');
-                return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
-            }), 
-            datasets:[
-                { label:'Income',  data: bucket(STATE.income,'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
-                { label:'Expense', data: bucket(STATE.expenses,'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
-            ]
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: true, ticks: { callback: v => (STATE.settings.currencySymbol || '¥') + v.toLocaleString() } } }
-        }
-    });
-
-    const cats = {};
-    exp.forEach(e => {
-        const cat = e.category || 'Other';
-        cats[cat] = (cats[cat] || 0) + (Number(e.amountGross) || 0);
-    });
-    
-    const catLabels = Object.keys(cats);
-    const catData = Object.values(cats);
-    const colors = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b'];
-
-    chartUp('categoryChart', {
-        type:'doughnut',
-        data: { 
-            labels: catLabels.length ? catLabels : ['No data'],
-            datasets: [{ 
-                data: catData.length ? catData : [1], 
-                backgroundColor: colors,
-                borderWidth: 0
-            }] 
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-            }, 
-            cutout: '70%' 
-        }
-    });
 }
 
 // Normalize a record's amount to base currency (foreign converted at the fixed rate).
@@ -1508,24 +1512,36 @@ function last6Months() {
 function monthBuckets(rows) {
     const months = last6Months();
     return { labels: months.map(m=>{ const [y,mm]=m.split('-'); return new Date(y,mm-1).toLocaleString('default',{month:'short'}); }),
-        data: months.map(m => rows.reduce((a,r)=> a + (dstr(r.date).slice(0,7)===m ? toBaseAmt(r.amountGross, r.currency) : 0), 0)) };
+        data: months.map(m => rows.reduce((a,r)=> a + (dstr(r.date).slice(0,7)===m ? (Number(r.amount)||0) : 0), 0)) };
 }
 function catBuckets(rows) {
-    const c = {}; rows.forEach(r => { const k=r.category||'Other'; c[k]=(c[k]||0)+toBaseAmt(r.amountGross, r.currency); });
+    const c = {}; rows.forEach(r => { const k=r.category||'Other'; c[k]=(c[k]||0)+(Number(r.amount)||0); });
     return { labels: Object.keys(c), data: Object.values(c) };
 }
-const CAT_COLORS = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b','#ec4899'];
+const CAT_COLORS = ['#0e6b60','#2c69a5','#157a52','#be403b','#f59e0b','#a855f7','#06b6d4','#64748b','#ec4899'];
+// VND→¥ conversions surface as income (the ¥ received), so the YEN wallet's growth
+// is visible on the Income page. These are derived (not stored), so the wallet math
+// in wallets() — which already adds conversion ¥ — is never double-counted.
+function fxIncomeRows() {
+    return (STATE.conversions || []).map(c => ({
+        id: 'fx-' + c.id, date: c.date, client: 'Currency Exchange', category: 'FX Conversion',
+        description: `Converted ${fmtVnd(c.vndAmount)} @ ${Number(c.rate).toLocaleString()} ${fxSym()}/${baseSym()}`,
+        amount: (Number(c.jpyReceived) || 0) - (Number(c.fee) || 0), _fx: true
+    }));
+}
+function allIncomeRows() { return STATE.income.concat(fxIncomeRows()); }
+
 function renderIncomeCharts() {
-    const b = monthBuckets(STATE.income);
-    chartUp('incomeTrendChart', { type:'line', data:{ labels:b.labels, datasets:[{ label:'Income ('+baseCode()+' eq.)', data:b.data, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.10)', tension:0.4, fill:true }]},
+    const b = monthBuckets(allIncomeRows());
+    chartUp('incomeTrendChart', { type:'line', data:{ labels:b.labels, datasets:[{ label:'Income ('+baseCode()+' eq.)', data:b.data, borderColor:'#157a52', backgroundColor:'rgba(16,185,129,0.10)', tension:0.4, fill:true }]},
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } } });
-    const c = catBuckets(STATE.income);
+    const c = catBuckets(allIncomeRows());
     chartUp('incomeCatChart', { type:'doughnut', data:{ labels:c.labels.length?c.labels:['No data'], datasets:[{ data:c.data.length?c.data:[1], backgroundColor:CAT_COLORS, borderWidth:0 }]},
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10}}}}, cutout:'65%' } });
 }
 function renderExpenseCharts() {
     const b = monthBuckets(STATE.expenses);
-    chartUp('expenseTrendChart', { type:'bar', data:{ labels:b.labels, datasets:[{ label:'Expenses ('+baseCode()+' eq.)', data:b.data, backgroundColor:'#ef4444', borderWidth:0 }]},
+    chartUp('expenseTrendChart', { type:'bar', data:{ labels:b.labels, datasets:[{ label:'Expenses ('+baseCode()+' eq.)', data:b.data, backgroundColor:'#be403b', borderWidth:0 }]},
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } } });
     const c = catBuckets(STATE.expenses);
     chartUp('expenseCatChart', { type:'doughnut', data:{ labels:c.labels.length?c.labels:['No data'], datasets:[{ data:c.data.length?c.data:[1], backgroundColor:CAT_COLORS, borderWidth:0 }]},
@@ -1534,17 +1550,18 @@ function renderExpenseCharts() {
 
 function renderIncome() {
     renderIncomeCharts();
-    const rows = STATE.income.slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
+    const rows = allIncomeRows().slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
     if (!rows.length) { document.getElementById('income-table').innerHTML='<div class="empty">No income yet.</div>'; return; }
     document.getElementById('income-table').innerHTML = `<table class="tbl">
-        <thead><tr><th>Date</th><th>Client</th><th>Category</th><th>Cur</th><th>Description</th><th class="right">Gross</th><th class="right">VAT</th><th class="right">Net</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Client</th><th>Category</th><th>Description</th><th class="right">Amount</th><th></th></tr></thead>
         <tbody>${rows.map(r=>`<tr>
-            <td>${dstr(r.date)}</td><td>${r.client||'—'}</td><td><span class="tag blue">${r.category}</span></td>
-            <td><span class="tag ${(r.currency||baseCode())===fxCode()?'amber':'gray'}">${r.currency||baseCode()}</span></td>
+            <td>${dstr(r.date)}</td><td>${r.client||'—'}</td><td><span class="tag ${r._fx?'green':'blue'}">${r.category}</span></td>
             <td>${r.description||'—'}</td>
-            <td class="right">${fmtCur(r.amountGross, r.currency)}</td><td class="right">${fmtCur(r.amountVat, r.currency)}</td><td class="right">${fmtCur(r.amountNet, r.currency)}</td>
-            <td class="right"><button class="btn ghost sm" onclick="editIncome('${r.id}')"><span class="material-icons">edit</span></button>
-                              <button class="btn ghost sm" onclick="delIncome('${r.id}')"><span class="material-icons">delete</span></button></td>
+            <td class="right">${fmt(r.amount)}</td>
+            <td class="right">${r._fx
+                ? `<button class="btn ghost sm" title="Manage on Trading & FX" onclick="document.querySelector('.nav-item[data-view=&quot;trading&quot;]').click()"><span class="material-icons">swap_horiz</span></button>`
+                : `<button class="btn ghost sm" onclick="editIncome('${r.id}')"><span class="material-icons">edit</span></button>
+                   <button class="btn ghost sm" onclick="delIncome('${r.id}')"><span class="material-icons">delete</span></button>`}</td>
         </tr>`).join('')}</tbody></table>`;
 }
 
@@ -1552,109 +1569,31 @@ function renderExpenses() {
     renderExpenseCharts();
     const rows = STATE.expenses.slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
     if (!rows.length) { document.getElementById('expense-table').innerHTML='<div class="empty">No expenses yet.</div>'; return; }
-    const tagColor = { Fixed:'blue', Variable:'amber', COGS:'red' };
+    const tagColor = { Fixed:'blue', Variable:'amber' };
     document.getElementById('expense-table').innerHTML = `<table class="tbl">
-        <thead><tr><th>Date</th><th>Vendor</th><th>Type</th><th>Category</th><th>Paid</th><th>Description</th><th class="right">Gross</th><th class="right">VAT</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Vendor</th><th>Type</th><th>Category</th><th>Paid</th><th>Description</th><th class="right">Amount</th><th></th></tr></thead>
         <tbody>${rows.map(r=>`<tr>
             <td>${dstr(r.date)}</td><td>${r.vendor||'—'}</td><td><span class="tag ${tagColor[r.costType]||'gray'}">${r.costType||'—'}</span></td>
             <td>${r.category}</td>
             <td><span class="tag ${r.paymentMethod==='credit'?'red':'green'}">${r.paymentMethod==='credit'?'Credit':'Cash'}</span></td>
             <td>${r.description||'—'}</td>
-            <td class="right">${fmtCur(r.amountGross, r.currency)}</td><td class="right">${fmtCur(r.amountVat, r.currency)}</td>
+            <td class="right">${fmt(r.amount)}</td>
             <td class="right"><button class="btn ghost sm" onclick="editExpense('${r.id}')"><span class="material-icons">edit</span></button>
                               <button class="btn ghost sm" onclick="delExpense('${r.id}')"><span class="material-icons">delete</span></button></td>
         </tr>`).join('')}</tbody></table>`;
 }
 
-function renderStock() {
-    const ps = STATE.stock;
-    const invValue = ps.reduce((a,p)=>a+Number(p.quantityOnHand)*Number(p.unitCost),0);
-    const reorder = ps.filter(p => Number(p.quantityOnHand) <= Number(p.reorderPoint)).length;
-    const out = ps.filter(p => Number(p.quantityOnHand) === 0).length;
-    document.getElementById('s-val').textContent = fmt(invValue);
-    document.getElementById('s-cnt').textContent = ps.length;
-    document.getElementById('s-reorder').textContent = reorder;
-    document.getElementById('s-out').textContent = out;
-
-    if (!ps.length) { document.getElementById('stock-table').innerHTML='<div class="empty">No products yet. Click <strong>Add Product</strong>.</div>'; return; }
-    document.getElementById('stock-table').innerHTML = `<table class="tbl">
-        <thead><tr><th>Name</th><th>Unit</th><th class="right">Qty</th><th class="right">Cost (${baseSym()})</th><th class="right">Sell (${fxSym()})</th><th class="right">Value (${baseSym()})</th><th>Status</th><th></th></tr></thead>
-        <tbody>${ps.map(p=>{
-            const q = Number(p.quantityOnHand);
-            const status = q===0 ? '<span class="tag red">Out</span>'
-                : q <= Number(p.reorderPoint) ? '<span class="tag amber">Low</span>'
-                : '<span class="tag green">OK</span>';
-            return `<tr>
-                <td>${p.name}</td><td>${p.unit}</td>
-                <td class="right">
-                    <button class="btn ghost sm" onclick="adjustQty('${p.sku}',-1)">−</button>
-                    <input class="inline" type="number" value="${q}" onchange="setQty('${p.sku}', this.value)" style="text-align:right">
-                    <button class="btn ghost sm" onclick="adjustQty('${p.sku}',1)">+</button>
-                </td>
-                <td class="right">${fmt(p.unitCost)}</td>
-                <td class="right">${fmtVnd(p.unitPrice)}</td>
-                <td class="right">${fmt(q*Number(p.unitCost))}</td>
-                <td>${status}</td>
-                <td class="right">
-                    <button class="btn ghost sm" title="Buy / restock" onclick="openBuyStockModal('${p.sku}')"><span class="material-icons">add_shopping_cart</span></button>
-                    <button class="btn ghost sm" onclick="editProduct('${p.sku}')"><span class="material-icons">edit</span></button>
-                    <button class="btn ghost sm" onclick="delProduct('${p.sku}')"><span class="material-icons">delete</span></button>
-                </td>
-            </tr>`;
-        }).join('')}</tbody></table>`;
-}
-// Buy / restock — raises inventory and books a ¥ expense paid by cash or credit.
-function openBuyStockModal(sku) {
-    const p = STATE.stock.find(x => x.sku===sku); if (!p) return;
-    const html = `
-        <div style="background:var(--surface-2); padding:0.6rem 0.85rem; border-radius:8px; font-size:0.85rem; margin-bottom:0.3rem;">
-            Restocking <strong>${p.name}</strong> — current qty ${Number(p.quantityOnHand)}.
-        </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Quantity to buy</label><input id="bs-qty" type="number" min="1" value="1" oninput="updateBuyPreview()"></div>
-            <div class="form-row"><label>Unit cost (${baseSym()})</label><input id="bs-cost" type="number" min="0" step="any" value="${Number(p.unitCost)||0}" oninput="updateBuyPreview()"></div>
-        </div>
-        <div class="form-grid-2">
-            <div class="form-row"><label>Date</label><input id="bs-date" type="date" value="${todayISO()}"></div>
-            <div class="form-row"><label>Paid with</label>
-                <select id="bs-pm" onchange="document.getElementById('bs-card-row').style.display=this.value==='credit'?'flex':'none'">
-                    <option value="cash">Cash / bank (¥ wallet)</option>
-                    <option value="credit">Credit card</option>
-                </select>
-            </div>
-        </div>
-        <div class="form-row" id="bs-card-row" style="display:none"><label>Card</label>
-            <select id="bs-card">${(STATE.creditCards||[]).map(c=>`<option value="${c.cardId}">${c.name}</option>`).join('')||'<option value="">— no cards —</option>'}</select>
-        </div>
-        <div class="form-row"><small id="bs-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small></div>`;
-    openModal('Buy / Restock — ' + p.name, html, () => {
-        const qty = Number(document.getElementById('bs-qty').value)||0;
-        const cost = Number(document.getElementById('bs-cost').value)||0;
-        if (qty<=0 || cost<=0) { toast('Enter quantity and unit cost','error'); return false; }
-        const pm = document.getElementById('bs-pm').value;
-        const cardId = pm==='credit' ? document.getElementById('bs-card').value : '';
-        srv('buyStock', [sku, qty, cost, pm, cardId, document.getElementById('bs-date').value], () => { refresh(); toast(`Bought ${qty} × ${p.name}`,'success'); });
-        return true;
-    });
-    updateBuyPreview();
-}
-function updateBuyPreview() {
-    const el = document.getElementById('bs-preview'); if (!el) return;
-    const qty = Number(document.getElementById('bs-qty').value)||0;
-    const cost = Number(document.getElementById('bs-cost').value)||0;
-    el.innerHTML = `Total cost <strong>${fmt(qty*cost)}</strong> — adds ${qty} to inventory and books a ${baseCode()} expense.`;
-}
-
 function renderPOs() {
     const all = STATE.pos;
     const open = all.filter(p => p.status!=='Done').length;
-    const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
+    // ¥ capital tied up in orders not yet collected (awaiting the customer's VND).
+    const inTransit = all.filter(p => p.status!=='Done').reduce((a,p)=> a + (Number(p.totalYen)||0), 0);
     const delivered = all.filter(p => p.actualDeliveryDate && p.expectedDate);
     const onTimePct = delivered.length
         ? Math.round(delivered.filter(p => dstr(p.actualDeliveryDate) <= dstr(p.expectedDate)).length / delivered.length * 100) + '%'
         : '—';
     document.getElementById('p-open').textContent = open;
-    document.getElementById('p-pay').textContent = fmt(outstanding);
+    document.getElementById('p-pay').textContent = fmt(inTransit);
     document.getElementById('p-ontime').textContent = onTimePct;
     document.getElementById('p-total').textContent = all.length;
 
@@ -1673,43 +1612,19 @@ function renderPOs() {
             const next = PO_FLOW[p.status];
             let warn='';
             if (st==='Delivery' && p.expectedDate && dstr(p.expectedDate) < todayISO()) warn = '⚠ Delivery overdue';
-            if (st==='Not Payment' && p.paymentDueDate && dstr(p.paymentDueDate) < todayISO()) warn = '⚠ Payment overdue';
             const line = firstLine(p);
-            const total = Number(p.totalGross)||0;
-            const paid = Number(p.paidAmount)||0;
-            const balance = Math.max(0, total - paid);
-            const pct = total>0 ? Math.min(100, Math.round(paid/total*100)) : 0;
-            const fullyPaid = total>0 && paid>=total;
-
-            const unitSellVnd = Number(line.unitSellVnd) || 0;
-            const totalSellVnd = unitSellVnd * (Number(line.quantity) || 0);
-
-            // Payment block: progress bar + paid/balance
-            const payBlock = (p.status!=='Preparing') ? `
-                <div style="margin-top:0.5rem; font-size:0.72rem; color:var(--text-2);">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>Paid ${fmt(paid)}${fullyPaid?' <span class="tag green" style="padding:0 5px">PAID</span>':''}</span>
-                        <span>${fullyPaid?'':'Balance '+fmt(balance)}</span>
-                    </div>
-                    <div style="height:6px; background:var(--surface-2); border-radius:4px; margin-top:3px; overflow:hidden;">
-                        <div style="height:100%; width:${pct}%; background:${fullyPaid?'var(--green)':'var(--amber)'};"></div>
-                    </div>
-                </div>` : '';
+            const totalYen = Number(p.totalYen)||0;
+            const totalVnd = Number(p.totalVnd)||0;
+            const payTag = p.paymentMethod==='credit' ? '<span class="tag red" style="padding:0 5px">Credit</span>' : '<span class="tag green" style="padding:0 5px">Cash</span>';
             return `<div class="po-card">
                 <div class="id">${p.poId}</div>
                 <div class="sup">${p.supplierName||'—'}</div>
                 <div style="font-size:0.78rem; color:var(--text-2); font-weight:600;">${line.productName||'—'} × ${line.quantity}</div>
-                <div class="meta" style="margin-top:0.2rem">
-                    <span>Cost: ${fmt(line.unitCost)}</span>
-                    <span style="color:var(--green)">Sell: ${fmtVnd(unitSellVnd)}</span>
-                </div>
-                <div class="amt" style="margin-top:0.3rem">Total Cost: ${fmt(p.totalGross)}</div>
-                <div style="font-size:0.68rem; color:var(--muted); margin-top:0.1rem">Total Sell: ${fmtVnd(totalSellVnd)}</div>
+                <div class="amt" style="margin-top:0.3rem">Paid: ${fmt(totalYen)} ${payTag}</div>
+                <div style="font-size:0.72rem; color:var(--green); margin-top:0.1rem">${p.status==='Done'?'Received':'To receive'}: ${fmtVnd(totalVnd)}</div>
                 <div class="meta" style="margin-top:0.4rem"><span>${dstr(p.orderDate)}</span><span>${p.expectedDate?'ETA '+dstr(p.expectedDate):''}</span></div>
-                ${payBlock}
                 ${warn?`<div class="warn">${warn}</div>`:''}
                 <div class="row-btns">
-                    ${(p.status!=='Preparing' && !fullyPaid) ? `<button class="btn primary sm" onclick="openPOPaymentModal('${p.poId}')"><span class="material-icons">payments</span> Pay</button>` : ''}
                     ${next ? `<button class="btn success sm" onclick="advancePO('${p.poId}')"><span class="material-icons">arrow_forward</span> ${STATUS_LABEL[next]||next}</button>` : ''}
                     ${p.status==='Preparing' ? `<button class="btn ghost sm" onclick="editPO('${p.poId}')"><span class="material-icons">edit</span></button>` : ''}
                     <button class="btn ghost sm" onclick="delPO('${p.poId}')"><span class="material-icons">delete</span></button>
@@ -1723,86 +1638,56 @@ function renderTransactions() {
     const rows = (STATE.transactions || []).slice().sort((a,b)=> dstr(b.date).localeCompare(dstr(a.date)));
     const el = document.getElementById('transactions-table');
     if (!rows.length) { el.innerHTML = '<div class="empty">No completed transactions yet. Mark a Purchase Order as <strong>Done</strong> to record history.</div>'; return; }
-    
+
     el.innerHTML = `<table class="tbl">
-        <thead><tr><th>Date</th><th>Product</th><th>Supplier</th><th class="right">Qty</th><th class="right">Unit Cost (${baseSym()})</th><th class="right">Unit Sell (${fxSym()})</th><th class="right">Margin (${baseSym()})</th><th class="right">Status</th><th></th></tr></thead>
-        <tbody>${rows.map(r=>{
-            const cost = Number(r.unitCost) || 0;
-            const sellYen = (Number(r.unitSellVnd) || 0) / fixedRate();
-            const margin = sellYen - cost;
-            return `<tr>
+        <thead><tr><th>Date</th><th>Product</th><th>Supplier</th><th class="right">Qty</th><th class="right">Unit Sell (${baseSym()})</th><th class="right">Received (${fxSym()})</th><th></th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
                 <td>${dstr(r.date)}</td>
                 <td style="font-weight:600">${r.productName}</td>
                 <td>${r.supplierName}</td>
                 <td class="right">${r.quantity}</td>
-                <td class="right">${fmt(cost)}</td>
-                <td class="right">${fmtVnd(r.unitSellVnd)}</td>
-                <td class="right" style="color:${margin>=0?'var(--green)':'var(--red)'}; font-weight:700">${fmt(margin)}</td>
-                <td><span class="tag green">Done</span></td>
+                <td class="right">${fmt(r.unitSell)}</td>
+                <td class="right" style="color:var(--green); font-weight:700">${fmtVnd(r.totalVnd)}</td>
                 <td class="right"><code style="font-size:0.65rem; color:var(--muted)">${r.poId}</code></td>
-            </tr>`;
-        }).join('')}</tbody></table>`;
-}
-function openPOPaymentModal(poId) {
-    const po = STATE.pos.find(p => p.poId===poId); if (!po) return;
-    const total = Number(po.totalGross)||0, paid = Number(po.paidAmount)||0;
-    const balance = Math.max(0, total - paid);
-    const html = `
-        <div style="background:var(--surface-2); padding:0.7rem 0.9rem; border-radius:8px; font-size:0.85rem; margin-bottom:0.3rem;">
-            Order total <strong>${fmt(total)}</strong> · Paid <strong>${fmt(paid)}</strong> · Balance owed <strong style="color:var(--amber)">${fmt(balance)}</strong>
-        </div>
-        <div class="form-row"><label>Payment amount (${baseSym()})</label><input id="pp-amt" type="number" min="0" step="any" value="${balance}"></div>
-        <div class="form-row" style="flex-direction:row; gap:0.4rem; flex-wrap:wrap;">
-            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${Math.round(total*0.3)}">30% deposit</button>
-            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${Math.round(total*0.5)}">50%</button>
-            <button type="button" class="btn sm" onclick="document.getElementById('pp-amt').value=${balance}">Full balance</button>
-        </div>`;
-    openModal('Record Payment — ' + poId, html, () => {
-        const amt = Number(document.getElementById('pp-amt').value)||0;
-        if (amt<=0) { toast('Enter an amount','error'); return false; }
-        srv('recordPOPayment', [poId, amt], () => { refresh(); toast(`Recorded ${fmt(amt)} for ${poId}`,'success'); });
-        return true;
-    });
+            </tr>`).join('')}</tbody></table>`;
 }
 function editPO(poId) { openPOModal(STATE.pos.find(p => p.poId===poId)); }
 
+// All profit comes from exchanging VND → ¥ at a better-than-fixed rate.
 function tradingMetrics() {
     const fx = fixedRate();
     const base = baseCode(), fcur = fxCode();
 
-    // --- Channel A: product trading margin -----------------------------------
-    // Margin is realized from completed Transactions (POs marked as Done).
-    let revVnd = 0, cogs = 0;
-    (STATE.transactions || []).forEach(t => {
-        revVnd += Number(t.totalSellVnd) || 0;
-        cogs += Number(t.totalCost) || 0;         // cost is in base currency (¥)
-    });
-    const revAtFixed = revVnd / fx;              // revenue valued in ¥ at fixed rate
-    const marginAtFixed = revAtFixed - cogs;     // baseline trading profit in ¥
+    // Total VND received from finished orders (lifetime), for reference.
+    const revVnd = (STATE.transactions || []).reduce((a,t)=> a + (Number(t.totalSellVnd)||Number(t.totalVnd)||0), 0);
 
-    // --- Channel B: realized FX from currency exchange -----------------------
+    // Realized FX profit = (¥ exchanged at YOUR input rate, net of fee) − (¥ at the DEFAULT
+    // fixed rate), summed over every conversion. This is the real money gained vs the baseline.
     let realizedFx = 0;
     (STATE.conversions || []).forEach(c => {
         const vnd = Number(c.vndAmount) || 0;
         const net = (Number(c.jpyReceived) || 0) - (Number(c.fee) || 0);
-        realizedFx += net - vnd / fx;                    // ¥ gained/lost vs converting at the fixed rate
+        realizedFx += Math.round(net - vnd / fx);   // round per row so the total equals the sum of the displayed rows
     });
     const vndConvAll = (STATE.conversions || []).reduce((a,c)=> a + (Number(c.vndAmount)||0), 0);
 
-    // ₫ still held = inflow from transactions - outflow from conversions/expenses
-    const wallet = wallets().dong;
-    const netReal = marginAtFixed + realizedFx;
-    return { fx, base, fcur, revVnd, revAtFixed, cogs, marginAtFixed,
-             realizedFx, wallet, vndConvAll, netReal };
+    const w = wallets();
+    const wallet = w.dong;          // ₫ still held
+    const yenWallet = w.yen;        // ¥ cash on hand
+    const atFixed = wallet / fx;    // ¥ the held ₫ is worth at the fixed rate
+    const netReal = realizedFx;     // profit is FX only
+    return { fx, base, fcur, revVnd, realizedFx, wallet, yenWallet, atFixed, vndConvAll, netReal };
 }
 
+// Two wallets. ¥ wallet = opening + income − cash expenses − cash POs + ¥ from exchanges − card payments.
+// VND wallet = VND received from finished orders − VND exchanged away.
 function wallets() {
-    const base = baseCode(), fx = fxCode();
-    let yen = 0, dong = 0;
-    (STATE.income || []).forEach(r => { const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong += amt; else yen += amt; });
-    (STATE.expenses || []).forEach(r => { if (r.paymentMethod === 'credit') return; const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong -= amt; else yen -= amt; });
-    // Inflow from completed transactions
-    (STATE.transactions || []).forEach(t => { dong += Number(t.totalSellVnd)||0; });
+    let yen = Number(STATE.settings.openingCashYen) || 0;
+    let dong = 0;
+    (STATE.income || []).forEach(r => { yen += Number(r.amount)||0; });
+    (STATE.expenses || []).forEach(r => { if (r.paymentMethod === 'credit') return; yen -= Number(r.amount)||0; });
+    (STATE.pos || []).forEach(p => { if (p.paymentMethod !== 'credit') yen -= Number(p.totalYen)||0; });   // cash POs draw the ¥ wallet
+    (STATE.transactions || []).forEach(t => { dong += Number(t.totalSellVnd)||Number(t.totalVnd)||0; });
     (STATE.conversions || []).forEach(c => { dong -= Number(c.vndAmount)||0; yen += (Number(c.jpyReceived)||0) - (Number(c.fee)||0); });
     (STATE.cardTxns || []).forEach(t => { if (t.type === 'payment') yen -= Number(t.amount)||0; });
     return { yen, dong, credit: cardMetrics() };
@@ -1811,10 +1696,10 @@ function wallets() {
 function cashPosition() { return wallets().yen; }
 
 function renderDashboard() {
-    const inc = STATE.income.filter(inMonth);
+    const inc = allIncomeRows().filter(inMonth);
     const exp = STATE.expenses.filter(inMonth);
-    const gross = sum(inc,'amountGross');
-    const totalExp = sum(exp,'amountGross');
+    const gross = sum(inc,'amount');
+    const totalExp = sum(exp,'amount');
     const unpaid = STATE.pos.filter(p => p.status==='Not Payment');
     const t = tradingMetrics();
     const w = wallets();
@@ -1822,6 +1707,8 @@ function renderDashboard() {
 
     document.getElementById('k-cash').textContent = fmt(w.yen);
     document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
+    document.getElementById('k-dong').textContent = fmtVnd(w.dong);
+    document.getElementById('k-dong-sub').textContent = `≈ ${fmt(w.dong / fixedRate())} at fixed`;
     document.getElementById('k-credit').textContent = fmt(cc.available);
     document.getElementById('k-credit-sub').textContent = `${fmt(cc.used)} used of ${fmt(cc.limit)}`;
     document.getElementById('k-inc').textContent = fmt(gross);
@@ -1832,7 +1719,6 @@ function renderDashboard() {
     renderSupplierRank();
 
     document.getElementById('badge-po').textContent = unpaid.length + STATE.pos.filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
-    document.getElementById('chip-alerts').textContent = unpaid.length;
 
     // Generate last 6 months labels
     const months = last6Months();
@@ -1855,8 +1741,8 @@ function renderDashboard() {
                 return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
             }), 
             datasets:[
-                { label:'Income',  data: bucket(STATE.income,'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
-                { label:'Expense', data: bucket(STATE.expenses,'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
+                { label:'Income',  data: bucket(allIncomeRows(),'amount'),   borderColor:'#0e6b60', backgroundColor:'rgba(14,107,96,0.08)', tension:0.4, fill:true },
+                { label:'Expense', data: bucket(STATE.expenses,'amount'), borderColor:'#be403b', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
             ]
         },
         options: { 
@@ -1870,12 +1756,12 @@ function renderDashboard() {
     const cats = {};
     exp.forEach(e => {
         const cat = e.category || 'Other';
-        cats[cat] = (cats[cat] || 0) + (Number(e.amountGross) || 0);
+        cats[cat] = (cats[cat] || 0) + (Number(e.amount) || 0);
     });
     
     const catLabels = Object.keys(cats);
     const catData = Object.values(cats);
-    const colors = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b'];
+    const colors = ['#0e6b60','#2c69a5','#157a52','#be403b','#f59e0b','#a855f7','#06b6d4','#64748b'];
 
     chartUp('categoryChart', {
         type:'doughnut',
@@ -1912,98 +1798,235 @@ function renderSuppliers() {
             </td></tr>`).join('')}</tbody></table>`;
 }
 
-// Daily cash flow for one ISO date: income in, expenses + card payments out.
-function dayCashIn(iso)  { 
-    const inc = sum(STATE.income.filter(r=>dstr(r.date)===iso),'amountGross');
-    const trans = sum((STATE.transactions||[]).filter(t=>dstr(t.date)===iso),'totalSellVnd');
-    // For cash flow, we convert transaction VND to base ¥ at fixed rate
-    return inc + trans / fixedRate();
+// Daily ¥ cash flow for one ISO date. In: income + ¥ received from exchanges.
+// Out: cash expenses + card payments + cash PO purchases. (All in ¥; VND never enters here.)
+function dayCashIn(iso)  {
+    const inc = sum(STATE.income.filter(r=>dstr(r.date)===iso),'amount');
+    const fxIn = (STATE.conversions||[]).filter(c=>dstr(c.date)===iso)
+        .reduce((a,c)=> a + ((Number(c.jpyReceived)||0) - (Number(c.fee)||0)), 0);
+    return inc + fxIn;
 }
 function dayCashOut(iso) {
-    return sum(STATE.expenses.filter(r=>dstr(r.date)===iso),'amountGross')
-         + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date)===iso),'amount');
+    return sum(STATE.expenses.filter(r=>r.paymentMethod!=='credit' && dstr(r.date)===iso),'amount')
+         + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date)===iso),'amount')
+         + sum((STATE.pos||[]).filter(p=>p.paymentMethod!=='credit' && dstr(p.orderDate)===iso),'totalYen');
 }
-function renderCashFlow() {
-    const hm = document.getElementById('heatmap'); hm.innerHTML='';
-    ['S','M','T','W','T','F','S'].forEach(d => { const e=document.createElement('div'); e.className='day'; e.textContent=d; e.style.fontWeight=700; e.style.color='var(--muted)'; e.style.background='transparent'; e.style.border='none'; hm.appendChild(e); });
-    const now = new Date(); const y=now.getFullYear(), m=now.getMonth();
-    const first = new Date(y,m,1); const days = new Date(y,m+1,0).getDate();
-    for (let i=0;i<first.getDay();i++){ const e=document.createElement('div'); e.className='day'; e.style.visibility='hidden'; hm.appendChild(e); }
-    let monthIn=0, monthOut=0; const balLabels=[], balData=[]; let running=0;
-    for (let d=1;d<=days;d++){
-        const iso = new Date(y,m,d).toISOString().slice(0,10);
-        const inN = dayCashIn(iso), outN = dayCashOut(iso), n = inN - outN;
-        monthIn += inN; monthOut += outN; running += n;
-        balLabels.push(String(d)); balData.push(Math.round(running));
-        let cls='';
-        if (n>1000000) cls='h-pos-3'; else if (n>300000) cls='h-pos-2'; else if (n>0) cls='h-pos-1';
-        else if (n<-1000000) cls='h-neg-3'; else if (n<-300000) cls='h-neg-2'; else if (n<0) cls='h-neg-1';
-        const cell=document.createElement('div'); cell.className='day '+cls; cell.textContent=d; cell.title=`${iso}: ${fmt(n)}`;
-        hm.appendChild(cell);
-    }
-    // KPIs
-    document.getElementById('cf-in').textContent = fmt(monthIn);
-    document.getElementById('cf-out').textContent = fmt(monthOut);
-    document.getElementById('cf-net').textContent = fmt(monthIn - monthOut);
-    document.getElementById('cf-end').textContent = fmt(cashPosition());
+// Cumulative ¥ net cash flow on or before a date (excludes the opening balance).
+function cfNetUpTo(iso) {
+    let n = 0;
+    (STATE.income||[]).forEach(r => { if (dstr(r.date) <= iso) n += Number(r.amount)||0; });
+    (STATE.conversions||[]).forEach(c => { if (dstr(c.date) <= iso) n += (Number(c.jpyReceived)||0) - (Number(c.fee)||0); });
+    (STATE.expenses||[]).forEach(r => { if (r.paymentMethod!=='credit' && dstr(r.date) <= iso) n -= Number(r.amount)||0; });
+    (STATE.cardTxns||[]).forEach(t => { if (t.type==='payment' && dstr(t.date) <= iso) n -= Number(t.amount)||0; });
+    (STATE.pos||[]).forEach(p => { if (p.paymentMethod!=='credit' && dstr(p.orderDate) <= iso) n -= Number(p.totalYen)||0; });
+    return n;
+}
+// Resolve the heatmap/analysis window from the active date range. "All" (or a huge
+// span) is clamped to the actual data span, and the grid is capped at ~62 weeks so it
+// stays readable. Returns Date objects for the first and last day to show.
+function cfRange() {
+    const today = new Date(todayISO());
+    let from = new Date(PERIOD.from), to = new Date(PERIOD.to);
+    // Clamp an open-ended range to the span of real data (fall back to last 3 months).
+    const allDates = []
+        .concat((STATE.income||[]).map(r=>dstr(r.date)))
+        .concat((STATE.expenses||[]).map(r=>dstr(r.date)))
+        .concat((STATE.conversions||[]).map(r=>dstr(r.date)))
+        .concat((STATE.cardTxns||[]).map(r=>dstr(r.date)))
+        .concat((STATE.pos||[]).map(r=>dstr(r.orderDate)))
+        .filter(Boolean).sort();
+    if (from.getFullYear() < 2000 && allDates.length) from = new Date(allDates[0]);
+    if (to.getFullYear() > 2900) to = new Date(allDates.length ? allDates[allDates.length-1] : todayISO());
+    if (to < from) to = new Date(from);
+    // Cap at ~62 weeks so the grid never explodes.
+    const MAXD = 62*7;
+    if ((to - from) / 86400000 > MAXD) from = new Date(to.getTime() - MAXD*86400000);
+    return { from, to, today };
+}
 
-    // Running cumulative-net line for the month
+// ===== Daily Net Heatmap — its own month filter, independent of the date range above. =====
+const HEAT = { month: null };   // selected month as 'YYYY-MM'
+
+// Every dated activity, used to default the picker to the latest month with data.
+function heatAllDates() {
+    return []
+        .concat((STATE.income||[]).map(r=>dstr(r.date)))
+        .concat((STATE.expenses||[]).map(r=>dstr(r.date)))
+        .concat((STATE.conversions||[]).map(r=>dstr(r.date)))
+        .concat((STATE.cardTxns||[]).map(r=>dstr(r.date)))
+        .concat((STATE.pos||[]).map(r=>dstr(r.orderDate)))
+        .filter(Boolean).sort();
+}
+
+function onHeatMonthChange() {
+    const sel = document.getElementById('heat-month');
+    if (sel && sel.value) HEAT.month = sel.value;
+    renderHeatmap();
+}
+
+function heatMonthStep(delta) {
+    const [y,m] = (HEAT.month || todayISO().slice(0,7)).split('-').map(Number);
+    const d = new Date(y, m-1+delta, 1);
+    HEAT.month = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    renderHeatmap();
+}
+
+function renderHeatmap() {
+    // Default to the latest month that has activity (else the current month).
+    if (!HEAT.month) {
+        const all = heatAllDates();
+        HEAT.month = all.length ? all[all.length-1].slice(0,7) : todayISO().slice(0,7);
+    }
+    const sel = document.getElementById('heat-month');
+    if (sel && sel.value !== HEAT.month) sel.value = HEAT.month;
+
+    const [yy,mm] = HEAT.month.split('-').map(Number);
+    const daysInMonth = new Date(yy, mm, 0).getDate();
+
+    // ---- Per-day flows for the selected month (iso keys built without TZ conversion). ----
+    const dayData = [];   // { iso, in, out, net, dow }  dow: Mon=0 … Sun=6
+    let maxAbs = 0;
+    for (let dn=1; dn<=daysInMonth; dn++) {
+        const iso = `${yy}-${String(mm).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+        const inN = dayCashIn(iso), outN = dayCashOut(iso), net = inN - outN;
+        maxAbs = Math.max(maxAbs, Math.abs(net));
+        dayData.push({ iso, in:inN, out:outN, net, dow:(new Date(yy,mm-1,dn).getDay()+6)%7 });
+    }
+
+    const tag = document.getElementById('cf-heat-range');
+    if (tag) tag.textContent = new Date(yy, mm-1, 1).toLocaleString('default',{ month:'long', year:'numeric' });
+
+    const hm = document.getElementById('heatmap'); hm.innerHTML='';
+    const intensity = net => {
+        if (!net || !maxAbs) return '';
+        const r = Math.abs(net)/maxAbs;
+        const lvl = r>0.66?4 : r>0.33?3 : r>0.10?2 : 1;
+        return (net>0?'h-pos-':'h-neg-') + lvl;
+    };
+    // Pad leading blanks so the first day lands under the right weekday column.
+    const lead = dayData.length ? dayData[0].dow : 0;
+    const cells = [];
+    for (let i=0;i<lead;i++) cells.push(null);
+    dayData.forEach(x => cells.push(x));
+    const frag = document.createDocumentFragment();
+    cells.forEach(x => {
+        const cell=document.createElement('div');
+        if (!x) { cell.className='cf-day blank'; frag.appendChild(cell); return; }
+        const tint = intensity(x.net);
+        const active = x.in || x.out;
+        cell.className = 'cf-day' + (tint?' '+tint:'') + (active?'':' quiet') + (x.iso===todayISO()?' today':'');
+        const dnum = Number(x.iso.slice(8,10));
+        const arrow = x.net>0?'▲':x.net<0?'▼':'';
+        cell.innerHTML =
+            `<span class="dnum">${dnum}</span>` +
+            (active
+                ? `<span class="dbody">`
+                    + `<span class="dnet">${x.net>=0?'+':'−'}${fmt(Math.abs(x.net))}`
+                    + (arrow?`<span class="arw">${arrow}</span>`:'')
+                    + `</span>`
+                    + `<span class="dflow">in ${fmtK(x.in)} · out ${fmtK(x.out)}</span>`
+                  + `</span>`
+                : '');
+        cell.title = `${x.iso}\nIn ${fmt(x.in)} · Out ${fmt(x.out)}\nNet ${x.net>=0?'+':''}${fmt(x.net)}`;
+        frag.appendChild(cell);
+    });
+    hm.appendChild(frag);
+}
+
+// Compact money for tight cells: ¥20k, ¥1.5M, ¥0. Exact values stay in fmt().
+function fmtK(v) {
+    v = Math.round(Number(v)||0);
+    const a = Math.abs(v), sign = v<0?'-':'';
+    let s;
+    if (a >= 1e6)      s = (a/1e6).toFixed(a>=1e7?0:1).replace(/\.0$/,'') + 'M';
+    else if (a >= 1e3) s = (a/1e3).toFixed(a>=1e4?0:1).replace(/\.0$/,'') + 'k';
+    else               s = '' + a;
+    return baseSym() + sign + s;
+}
+
+function renderCashFlow() {
+    const { from, to, today } = cfRange();
+    const fromISO = from.toISOString().slice(0,10), toISO = to.toISOString().slice(0,10);
+    const rangeTag = `${fromISO} → ${toISO}`;
+    ['cf-range-1','cf-range-2','cf-bal-range'].forEach(id => { const el=document.getElementById(id); if (el) el.textContent = rangeTag; });
+
+    // ---- Per-day flows across the range (single pass) ----
+    const dayData = [];   // { iso, in, out, net, dow }
+    let rangeIn=0, rangeOut=0;
+    for (let d=new Date(from); d<=to; d.setDate(d.getDate()+1)) {
+        const iso = d.toISOString().slice(0,10);
+        const inN = dayCashIn(iso), outN = dayCashOut(iso), net = inN - outN;
+        rangeIn += inN; rangeOut += outN;
+        dayData.push({ iso, in:inN, out:outN, net, dow:(d.getDay()+6)%7 });  // Mon=0 … Sun=6
+    }
+    const days = dayData.length;
+
+    // ---- KPIs ----
+    document.getElementById('cf-in').textContent = fmt(rangeIn);
+    document.getElementById('cf-out').textContent = fmt(rangeOut);
+    document.getElementById('cf-net').textContent = (rangeIn-rangeOut>=0?'+':'') + fmt(rangeIn-rangeOut);
+    // Cash balance as of the range end = opening + all dated net flows up to that day.
+    const opening = Number(STATE.settings.openingCashYen) || 0;
+    const balAt = iso => opening + cfNetUpTo(iso);
+    document.getElementById('cf-end').textContent = fmt(balAt(toISO));
+    document.getElementById('cf-end-sub').textContent = `balance on ${toISO}`;
+
+    // ---- Analytics strip ----
+    const active = dayData.filter(x => x.in || x.out);
+    const pos = dayData.filter(x => x.net > 0).length;
+    const neg = dayData.filter(x => x.net < 0).length;
+    const best = dayData.reduce((a,b)=> b.net>a.net?b:a, {net:-Infinity,iso:'—'});
+    const worst = dayData.reduce((a,b)=> b.net<a.net?b:a, {net:Infinity,iso:'—'});
+    const bigOut = dayData.reduce((a,b)=> b.out>a.out?b:a, {out:0,iso:'—'});
+    document.getElementById('cf-avg').textContent = (days? (rangeIn-rangeOut)/days>=0?'+':'':'') + fmt(days? (rangeIn-rangeOut)/days : 0);
+    document.getElementById('cf-avg-sub').textContent = `over ${days} day${days===1?'':'s'}`;
+    document.getElementById('cf-best').textContent = best.net>0?'+'+fmt(best.net):fmt(best.net||0);
+    document.getElementById('cf-best-sub').textContent = best.iso!=='—'&&best.net>-Infinity? best.iso : 'no activity';
+    document.getElementById('cf-worst').textContent = worst.net<0?fmt(worst.net):fmt(worst.net||0);
+    document.getElementById('cf-worst-sub').textContent = worst.iso!=='—'&&worst.net<Infinity? worst.iso : 'no activity';
+    document.getElementById('cf-posneg').textContent = `${pos} / ${neg}`;
+    document.getElementById('cf-active-sub').textContent = `${active.length} day${active.length===1?'':'s'} with activity`;
+    document.getElementById('cf-bigout').textContent = bigOut.out>0?fmt(bigOut.out):'—';
+    document.getElementById('cf-bigout-sub').textContent = bigOut.out>0? bigOut.iso : 'no spending';
+
+    // ---- Calendar heatmap: filtered by its own month picker, independent of the range. ----
+    renderHeatmap();
+
+    // ---- Running balance line across the range ----
+    let running = opening + cfNetUpTo(fromISO) - (dayData[0]? dayData[0].net : 0);  // balance just before the range starts
+    const balLabels=[], balData=[];
+    dayData.forEach(x => { running += x.net; balLabels.push(x.iso.slice(5)); balData.push(Math.round(running)); });
     chartUp('cfBalanceChart', {
         type:'line',
-        data:{ labels:balLabels, datasets:[{ label:'Cumulative net', data:balData,
-            borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.10)', tension:0.3, fill:true, pointRadius:0 }] },
+        data:{ labels:balLabels, datasets:[{ label:'Cash balance', data:balData,
+            borderColor:'#0e6b60', backgroundColor:'rgba(14,107,96,0.10)', tension:0.25, fill:true, pointRadius:0 }] },
         options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
-            scales:{ y:{ ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
+            scales:{ x:{ ticks:{ maxTicksLimit:8, autoSkip:true } }, y:{ ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
     });
 
-    // Inflow vs outflow, last 6 months
+    // Inflow vs outflow, last 6 months (fixed context, independent of the range)
+    const now=new Date(), y=now.getFullYear(), m=now.getMonth();
     const months=[]; for (let i=5;i>=0;i--){ const d=new Date(y,m-i,1); months.push(d.toISOString().slice(0,7)); }
     const inflow = months.map(ym => {
-        const inc = sum(STATE.income.filter(r=>dstr(r.date).slice(0,7)===ym),'amountGross');
-        const trans = sum((STATE.transactions||[]).filter(t=>dstr(t.date).slice(0,7)===ym),'totalSellVnd');
-        return inc + trans / fixedRate();
+        const inc = sum(STATE.income.filter(r=>dstr(r.date).slice(0,7)===ym),'amount');
+        const fxIn = (STATE.conversions||[]).filter(c=>dstr(c.date).slice(0,7)===ym)
+            .reduce((a,c)=> a + ((Number(c.jpyReceived)||0) - (Number(c.fee)||0)), 0);
+        return inc + fxIn;
     });
     const outflow = months.map(ym =>
-        sum(STATE.expenses.filter(r=>dstr(r.date).slice(0,7)===ym),'amountGross')
-      + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date).slice(0,7)===ym),'amount'));
+        sum(STATE.expenses.filter(r=>r.paymentMethod!=='credit' && dstr(r.date).slice(0,7)===ym),'amount')
+      + sum((STATE.cardTxns||[]).filter(r=>r.type==='payment' && dstr(r.date).slice(0,7)===ym),'amount')
+      + sum((STATE.pos||[]).filter(p=>p.paymentMethod!=='credit' && dstr(p.orderDate).slice(0,7)===ym),'totalYen'));
     chartUp('cfBarsChart', {
         type:'bar',
         data:{ labels: months.map(ym=>{ const [yy,mm]=ym.split('-'); return new Date(yy,mm-1).toLocaleString('default',{month:'short'}); }),
             datasets:[
-                { label:'Inflow', data:inflow, backgroundColor:'#10b981', borderWidth:0 },
-                { label:'Outflow', data:outflow, backgroundColor:'#ef4444', borderWidth:0 }
+                { label:'Inflow', data:inflow, backgroundColor:'#157a52', borderWidth:0 },
+                { label:'Outflow', data:outflow, backgroundColor:'#be403b', borderWidth:0 }
             ] },
         options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } },
             scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
     });
-}
-
-function renderPL() {
-    const inc = STATE.income.filter(inMonth);
-    const exp = STATE.expenses.filter(inMonth);
-    const gross = sum(inc,'amountGross');
-    const vatOut = sum(inc,'amountVat');
-    const net = sum(inc,'amountNet');
-    const cogs = sum(exp.filter(e=>e.costType==='COGS'),'amountNet');
-    const opex = sum(exp.filter(e=>e.costType!=='COGS'),'amountNet');
-    const gp = net - cogs;
-    const op = gp - opex;
-    const opexCats = {};
-    exp.filter(e=>e.costType!=='COGS').forEach(e => opexCats[e.category] = (opexCats[e.category]||0) + Number(e.amountNet||0));
-    let html = '<h3><span class="material-icons">bar_chart</span> Profit & Loss — This Month</h3><table class="tbl"><tbody>';
-    html += `<tr><td style="font-weight:700; color:var(--primary)">REVENUE</td><td class="right"></td></tr>`;
-    html += `<tr><td style="padding-left:1.5rem">Gross Revenue</td><td class="right">${fmt(gross)}</td></tr>`;
-    html += `<tr><td style="padding-left:1.5rem">Less: Output VAT</td><td class="right">(${fmt(vatOut)})</td></tr>`;
-    html += `<tr><td style="padding-left:1.5rem; font-weight:700">Net Revenue</td><td class="right" style="font-weight:700">${fmt(net)}</td></tr>`;
-    html += `<tr><td style="font-weight:700; color:var(--primary); padding-top:0.8rem">COGS</td><td class="right">(${fmt(cogs)})</td></tr>`;
-    html += `<tr><td style="font-weight:700">GROSS PROFIT</td><td class="right" style="font-weight:700">${fmt(gp)}</td></tr>`;
-    html += `<tr><td style="font-weight:700; color:var(--primary); padding-top:0.8rem">OPERATING EXPENSES</td><td class="right"></td></tr>`;
-    Object.entries(opexCats).forEach(([k,v])=> html += `<tr><td style="padding-left:1.5rem">${k}</td><td class="right">(${fmt(v)})</td></tr>`);
-    html += `<tr><td style="padding-left:1.5rem; font-weight:700">Total OpEx</td><td class="right" style="font-weight:700">(${fmt(opex)})</td></tr>`;
-    html += `<tr><td style="font-weight:800; color:var(--green); font-size:1rem; border-top:2px solid var(--green)">OPERATING PROFIT</td><td class="right" style="font-weight:800; color:var(--green); font-size:1rem; border-top:2px solid var(--green)">${fmt(op)}</td></tr>`;
-    html += `<tr><td style="padding-left:1.5rem; color:var(--muted)">Net Margin</td><td class="right" style="color:var(--muted)">${net>0?((op/net)*100).toFixed(1):0}%</td></tr>`;
-    html += '</tbody></table>';
-    document.getElementById('pl-panel').innerHTML = html;
 }
 
 // ============================================================
@@ -2018,13 +2041,13 @@ function renderTrading() {
     const fx = t.fx;
     // Dynamic, currency-aware labels
     document.getElementById('t-title').textContent = `Trading & FX — Profit in ${baseCode()}`;
-    document.getElementById('t-subtitle').textContent = `Buy in ${baseCode()} (${baseSym()}), then sell in ${fxCode()} (${fxSym()}) or ${baseCode()} (${baseSym()}). ${fxSym()} sales are valued at the fixed 1${baseSym()} = ${fx}${fxSym()} to compare against cost; converting ${fxSym()} → ${baseSym()} at the real rate adds the FX gain/loss. All profit shown in ${baseCode()}.`;
-    document.getElementById('t-rev-lbl').textContent = `Sales Revenue (${fxSym()})`;
-    document.getElementById('t-cogs-lbl').textContent = `COGS (${baseSym()})`;
-    document.getElementById('t-margin-lbl').textContent = `Trading Margin @${fx} (${baseSym()})`;
-    document.getElementById('t-fx-lbl').textContent = `Realized FX (${baseSym()})`;
+    document.getElementById('t-subtitle').textContent = `Your goods convert ${baseSym()} into ${fxSym()} at the fixed 1${baseSym()} = ${fx}${fxSym()}. Profit is made when you exchange the ${fxCode()} wallet back to ${baseCode()} at a better rate than ${fx}.`;
     document.getElementById('t-wallet-lbl').textContent = `${fxCode()} Wallet`;
+    document.getElementById('t-yenwallet-lbl').textContent = `${baseCode()} Wallet`;
+    document.getElementById('t-atfixed-lbl').textContent = `Wallet value @fixed (${baseSym()})`;
+    document.getElementById('t-fx-lbl').textContent = `Realized FX profit (${baseSym()})`;
     document.getElementById('t-unreal-lbl').textContent = `Unrealized FX (${baseSym()})`;
+    document.getElementById('t-rev-lbl').textContent = `${fxCode()} received (lifetime)`;
     document.getElementById('t-base-code').textContent = baseCode();
     document.getElementById('t-rate-lbl').textContent = `Current market rate (${fxSym()} per ${baseSym()})`;
     document.getElementById('t-rate-hint').textContent = `lower than ${fx} = good time to convert`;
@@ -2038,46 +2061,21 @@ function renderTrading() {
     const rateNow = (rateEl && Number(rateEl.value) > 0) ? Number(rateEl.value) : fx;
     const unrealized = t.wallet * (1/rateNow - 1/fx);
 
-    document.getElementById('t-rev').textContent = fmtVnd(t.revVnd);
-    document.getElementById('t-rev-sub').textContent = `≈ ${fmt(t.revVnd / fx)} at fixed`
-        + (t.revYen > 0 ? ` · + ${fmt(t.revYen)} sold in ${baseCode()}` : '');
-    document.getElementById('t-cogs').textContent = fmt(t.cogs);
-    document.getElementById('t-margin').textContent = fmt(t.marginAtFixed);
-    document.getElementById('t-margin-sub').textContent = t.revAtFixed>0 ? `${(t.marginAtFixed/t.revAtFixed*100).toFixed(0)}% of sales` : 'markup profit';
+    document.getElementById('t-wallet').textContent = fmtVnd(t.wallet);
+    document.getElementById('t-wallet-sub').textContent = `held, not converted`;
+    document.getElementById('t-yenwallet').textContent = fmt(t.yenWallet);
+    document.getElementById('t-yenwallet-sub').textContent = `cash on hand`;
+    document.getElementById('t-atfixed').textContent = fmt(t.atFixed);
+    document.getElementById('t-atfixed-sub').textContent = `${fxSym()} wallet ÷ ${fx}`;
     document.getElementById('t-fx').textContent = (t.realizedFx>=0?'+':'') + fmt(t.realizedFx);
     document.getElementById('t-fx').style.color = t.realizedFx>=0 ? 'var(--green)' : 'var(--red)';
-    document.getElementById('t-wallet').textContent = fmtVnd(t.wallet);
-    document.getElementById('t-wallet-sub').textContent = `≈ ${fmt(t.wallet / fx)} at fixed`;
     document.getElementById('t-unreal').textContent = (unrealized>=0?'+':'') + fmt(unrealized);
     document.getElementById('t-unreal').style.color = unrealized>=0 ? 'var(--green)' : 'var(--red)';
     document.getElementById('t-unreal-sub').textContent = `at ${Math.round(rateNow)} ${fxSym()}/${baseSym()}`;
+    document.getElementById('t-rev').textContent = fmtVnd(t.revVnd);
+    document.getElementById('t-rev-sub').textContent = `from finished orders`;
     document.getElementById('t-net-real').textContent = fmt(t.netReal);
     document.getElementById('t-net-econ').textContent = fmt(t.netReal + unrealized);
-
-    // "What if I convert the whole wallet now?" projection.
-    // netReal already values held ₫ at the fixed rate (that's baselineYen), so converting
-    // the wallet only changes the result by the FX delta vs fixed — at exactly the fixed
-    // rate that delta is zero and the total is unchanged.
-    const receiveYen = t.wallet / rateNow;            // base ¥ you'd actually get at the market rate
-    const baselineYen = t.wallet / fx;                // ¥ the fixed rate already assumed for this ₫
-    const fxGain = receiveYen - baselineYen;          // = unrealized FX on the wallet
-    const totalProfit = t.netReal + fxGain;           // realized profit (¥) after converting now
-    const fxGainPct = baselineYen > 0 ? (fxGain / baselineYen * 100) : 0;
-    // Return on cost: total profit over the cost base of goods sold (fallback to FX-vs-fixed %).
-    const marginPct = t.cogs > 0 ? (totalProfit / t.cogs * 100) : fxGainPct;
-    document.getElementById('t-wi-receive').textContent = fmt(receiveYen);
-    document.getElementById('t-wi-total').textContent = fmt(totalProfit);
-    document.getElementById('t-wi-pct').textContent = marginPct.toFixed(0) + '%';
-    document.getElementById('t-wi-pct').style.color = marginPct>=0 ? 'var(--green)' : 'var(--red)';
-    if (t.wallet <= 0) {
-        document.getElementById('t-whatif').innerHTML = `Your ${fxCode()} wallet is empty — nothing to convert right now. Record sales (sell stock) to build up ${fxSym()}.`;
-    } else {
-        document.getElementById('t-whatif').innerHTML =
-            `At <strong>1${baseSym()} = ${Math.round(rateNow)}${fxSym()}</strong>, your wallet of <strong>${fmtVnd(t.wallet)}</strong> converts to <strong>${fmt(receiveYen)}</strong>. `
-          + `That's <strong style="color:${fxGain>=0?'var(--green)':'var(--red)'}">${fxGain>=0?'+':''}${fmt(fxGain)} (${fxGainPct>=0?'+':''}${fxGainPct.toFixed(1)}%)</strong> versus the ${fmt(baselineYen)} the fixed ${fx} already assumes for this ${fxSym()}. `
-          + `Total realized profit would become <strong>${fmt(totalProfit)}</strong>. `
-          + (rateNow < fx ? '🎉 Better than fixed — good time to convert.' : rateNow > fx ? '⚠ Worse than fixed — converting now locks in a loss vs holding.' : 'Exactly the fixed rate, so converting adds nothing — your profit is already booked at 1¥='+fx+'₫.');
-    }
 
     renderConvTable();
     renderFxChart();
@@ -2090,17 +2088,29 @@ function renderConvTable() {
     if (!rows.length) { el.innerHTML = `<div class="empty">No conversions yet. Click <strong>Convert ${fxCode()} → ${baseCode()}</strong> when you exchange money.</div>`; return; }
     const fx = fixedRate();
     el.innerHTML = `<table class="tbl">
-        <thead><tr><th>Date</th><th class="right">${fxCode()} amount</th><th class="right">Rate (${fxSym()}/${baseSym()})</th><th class="right">${baseSym()} received</th><th class="right">Fee ${baseSym()}</th><th class="right">vs Fixed</th><th>Note</th><th></th></tr></thead>
+        <thead><tr>
+            <th>Date</th>
+            <th class="right">${fxCode()} amount</th>
+            <th class="right">Your rate (${fxSym()}/${baseSym()})</th>
+            <th class="right">${baseSym()} at your rate<br><small style="font-weight:400;text-transform:none;letter-spacing:0">net of fee</small></th>
+            <th class="right">${baseSym()} at fixed (${fx})</th>
+            <th class="right">FX profit<br><small style="font-weight:400;text-transform:none;letter-spacing:0">(your rate − fee) − fixed</small></th>
+            <th>Note</th><th></th>
+        </tr></thead>
         <tbody>${rows.map(c=>{
             const vnd=Number(c.vndAmount)||0, rcv=Number(c.jpyReceived)||0, fee=Number(c.fee)||0;
-            const gain = (rcv - fee) - vnd/fx;
+            const atYour  = rcv;            // ¥ from exchanging at YOUR input rate (vnd ÷ your rate)
+            const net     = atYour - fee;   // ¥ you actually receive, after the fee
+            const atFixed = vnd / fx;       // ¥ if exchanged at the DEFAULT fixed rate
+            const profit  = net - atFixed;  // realized FX profit = (your-rate money − fee) − fixed-rate money
+            const better  = Number(c.rate) > 0 && Number(c.rate) < fx;   // ₫/¥ lower than fixed = more ¥
             return `<tr>
                 <td>${dstr(c.date)}</td>
                 <td class="right">${fmtVnd(vnd)}</td>
-                <td class="right">${Number(c.rate).toLocaleString()}</td>
-                <td class="right">${fmt(rcv)}</td>
-                <td class="right">${fee?fmt(fee):'—'}</td>
-                <td class="right" style="color:${gain>=0?'var(--green)':'var(--red)'}; font-weight:600">${gain>=0?'+':''}${fmt(gain)}</td>
+                <td class="right">${Number(c.rate).toLocaleString()} <span class="tag ${better?'green':'gray'}" style="padding:0 5px">${better?'better':'worse'}</span></td>
+                <td class="right" style="font-weight:600">${fmt(net)}${fee?`<br><small style="color:var(--muted);font-weight:400">${fmt(atYour)} − ${fmt(fee)} fee</small>`:''}</td>
+                <td class="right" style="color:var(--muted)">${fmt(atFixed)}</td>
+                <td class="right" style="color:${profit>=0?'var(--green)':'var(--red)'}; font-weight:700">${profit>=0?'+':''}${fmt(profit)}</td>
                 <td>${c.note||'—'}</td>
                 <td class="right">
                     <button class="btn ghost sm" onclick="editConversion('${c.id}')"><span class="material-icons">edit</span></button>
@@ -2117,7 +2127,7 @@ function renderFxChart() {
     chartUp('fxChart', {
         type:'line',
         data: { labels: labels.length?labels:['—'], datasets:[
-            { label:`Actual rate (${fxSym()}/${baseSym()})`, data: data.length?data:[fx], borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.3, fill:true, pointRadius:4 },
+            { label:`Actual rate (${fxSym()}/${baseSym()})`, data: data.length?data:[fx], borderColor:'#0e6b60', backgroundColor:'rgba(14,107,96,0.08)', tension:0.3, fill:true, pointRadius:4 },
             { label:`Fixed (${fx})`, data: (labels.length?labels:['—']).map(()=>fx), borderColor:'#f59e0b', borderDash:[6,4], pointRadius:0, fill:false }
         ]},
         options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } },
@@ -2125,12 +2135,17 @@ function renderFxChart() {
     });
 }
 
+// Profit from each exchange: ¥ gain vs the fixed rate, per conversion (chronological).
 function renderProfitChart(t) {
+    const fx = fixedRate();
+    const rows = (STATE.conversions || []).slice().sort((a,b)=> dstr(a.date).localeCompare(dstr(b.date)));
+    const labels = rows.map(c => dstr(c.date));
+    const data = rows.map(c => ((Number(c.jpyReceived)||0) - (Number(c.fee)||0)) - (Number(c.vndAmount)||0)/fx);
     chartUp('profitChart', {
         type:'bar',
-        data: { labels:['Trading margin','Realized FX','Net profit'],
-            datasets:[{ data:[t.marginAtFixed, t.realizedFx, t.netReal],
-                backgroundColor:['#4f46e5','#10b981','#3b82f6'], borderWidth:0 }] },
+        data: { labels: labels.length?labels:['—'],
+            datasets:[{ label:`Profit per exchange (${baseSym()})`, data: data.length?data:[0],
+                backgroundColor: (data.length?data:[0]).map(v=> v>=0 ? '#157a52' : '#be403b'), borderWidth:0 }] },
         options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
             scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>baseSym()+v.toLocaleString() } } } }
     });
@@ -2146,6 +2161,9 @@ function openConversionModal(existing) {
         <div class="form-grid-2">
             <div class="form-row"><label>Actual rate (${fxSym()} per 1 ${baseSym()})</label><input id="cv-rate" type="number" min="1" step="any" value="${e.rate||fixedRate()}" oninput="updateConvPreview()"></div>
             <div class="form-row"><label>Fee (${baseSym()}, optional)</label><input id="cv-fee" type="number" min="0" step="any" value="${e.fee||0}" oninput="updateConvPreview()"></div>
+        </div>
+        <div class="form-row"><label>You receive (${baseSym()}) — auto from amount ÷ rate − fee</label>
+            <input id="cv-jpy" type="number" readonly value="0" style="background:var(--surface-2); color:var(--primary); font-weight:700; font-size:1.05rem">
         </div>
         <div class="form-row"><label>Note</label><input id="cv-note" value="${e.note||''}"></div>
         <div class="form-row"><small id="cv-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small></div>`;
@@ -2167,10 +2185,13 @@ function updateConvPreview() {
     const rate = Number(document.getElementById('cv-rate').value)||0;
     const fee = Number(document.getElementById('cv-fee').value)||0;
     const fx = fixedRate();
-    if (rate<=0) { el.textContent = 'Enter a rate to preview.'; return; }
-    const gross = vnd/rate, net = gross - fee, gain = net - vnd/fx;
-    el.innerHTML = `You receive <strong>${fmt(net)}</strong> (gross ${fmt(gross)} − fee ${fmt(fee)}). `
-        + `vs fixed ${fx}: <strong style="color:${gain>=0?'var(--green)':'var(--red)'}">${gain>=0?'+':''}${fmt(gain)}</strong> `
+    const jpyEl = document.getElementById('cv-jpy');
+    if (rate<=0) { el.textContent = 'Enter a rate to preview.'; if (jpyEl) jpyEl.value = 0; return; }
+    const gross = vnd/rate, net = gross - fee;
+    const atFixed = vnd/fx, profit = net - atFixed;   // FX profit = (your-rate ¥ − fee) − fixed-rate ¥
+    if (jpyEl) jpyEl.value = Math.round(net);
+    el.innerHTML = `You receive <strong>${fmt(net)}</strong> (${fmt(gross)} at your rate${fee?` − ${fmt(fee)} fee`:''}). `
+        + `At fixed ${fx} you'd get ${fmt(atFixed)}, so FX profit <strong style="color:${profit>=0?'var(--green)':'var(--red)'}">${profit>=0?'+':''}${fmt(profit)}</strong> `
         + (rate<fx ? '🎉 better than fixed' : rate>fx ? '⚠ worse than fixed' : 'exactly fixed');
 }
 function editConversion(id){ openConversionModal((STATE.conversions||[]).find(c=>c.id===id)); }
@@ -2350,48 +2371,16 @@ function editRecurring(id){ openRecurringModal((STATE.recurring||[]).find(r=>r.i
 function delRecurring(id){ if(!confirm('Delete this auto-charge? (already-posted charges stay)'))return; srv('deleteRecurring',[id],()=>{refresh();toast('Deleted');}); }
 function runRecurringNow(){ srv('postDueRecurring',[],res=>{ refresh(); toast('Posted '+((res&&res.posted)||0)+' due charge(s)','success'); }); }
 
-// ============================================================
-// BEST SELLERS — top 3 by outbound units × unit price in the period
-// ============================================================
-function renderBestSellers() {
-    const moves = (STATE.stockMoves || []).filter(m => {
-        const d = dstr(m.date);
-        return Number(m.qtyDelta) < 0 && d >= PERIOD.from && d <= PERIOD.to;
-    });
-    const agg = {};
-    moves.forEach(m => {
-        agg[m.sku] = (agg[m.sku] || 0) + Math.abs(Number(m.qtyDelta));
-    });
-    const ranked = Object.entries(agg).map(([sku, qty]) => {
-        const p = STATE.stock.find(x => x.sku===sku) || {};
-        return { sku, name: p.name||sku, qty, unitPrice: Number(p.unitPrice||0), revenue: qty * Number(p.unitPrice||0) };
-    }).sort((a,b) => b.revenue - a.revenue).slice(0,3);
-
-    const el = document.getElementById('best-sellers');
-    if (!ranked.length) { el.innerHTML = '<div class="empty">No outbound stock movements in this period yet. Adjust stock down (−) on the Stock page to record a sale, or reload demo data.</div>'; return; }
-    const medals = ['🥇','🥈','🥉'];
-    el.innerHTML = ranked.map((r,i) => `
-        <div class="bestseller-card rank-${i+1}">
-            <span class="rank-badge">${medals[i]}</span>
-            <div class="sku">${r.sku}</div>
-            <div class="name">${r.name}</div>
-            <div class="stats">
-                <div>Sold: <strong>${r.qty}</strong></div>
-                <div>Revenue: <strong>${fmt(r.revenue)}</strong></div>
-            </div>
-        </div>`).join('');
-}
-
-// Suppliers ranked by total purchased (sum of PO order value), all-time.
+// Suppliers ranked by total purchased (sum of PO ¥ paid), all-time.
 function renderSupplierRank() {
     const el = document.getElementById('supplier-rank'); if (!el) return;
     const agg = {};
     (STATE.pos || []).forEach(p => {
         const id = p.supplierId || p.supplierName || '—';
-        if (!agg[id]) agg[id] = { name: p.supplierName || id, total: 0, paid: 0, orders: 0 };
+        if (!agg[id]) agg[id] = { name: p.supplierName || id, total: 0, vnd: 0, orders: 0 };
         agg[id].name = p.supplierName || agg[id].name;
-        agg[id].total += Number(p.totalGross) || 0;
-        agg[id].paid  += Number(p.paidAmount) || 0;
+        agg[id].total += Number(p.totalYen) || 0;
+        agg[id].vnd   += Number(p.totalVnd) || 0;
         agg[id].orders += 1;
     });
     const ranked = Object.values(agg).sort((a,b) => b.total - a.total);
@@ -2399,16 +2388,15 @@ function renderSupplierRank() {
     const grand = ranked.reduce((a,s)=> a + s.total, 0) || 1;
     const medal = i => ['🥇','🥈','🥉'][i] || (i+1);
     el.innerHTML = `<table class="tbl">
-        <thead><tr><th>#</th><th>Supplier</th><th class="right">Orders</th><th class="right">Total Purchased</th><th class="right">Balance Owed</th><th>Share</th></tr></thead>
+        <thead><tr><th>#</th><th>Supplier</th><th class="right">Orders</th><th class="right">Total Paid (${baseSym()})</th><th class="right">Sales (${fxSym()})</th><th>Share</th></tr></thead>
         <tbody>${ranked.map((s,i)=>{
-            const owed = Math.max(0, s.total - s.paid);
             const pct = Math.round(s.total / grand * 100);
             return `<tr>
                 <td style="font-size:1rem">${medal(i)}</td>
                 <td>${s.name}</td>
                 <td class="right">${s.orders}</td>
                 <td class="right" style="font-weight:700">${fmt(s.total)}</td>
-                <td class="right" style="color:${owed>0?'var(--amber)':'var(--muted)'}">${owed>0?fmt(owed):'—'}</td>
+                <td class="right" style="color:var(--green)">${fmtVnd(s.vnd)}</td>
                 <td>
                     <div style="display:flex; align-items:center; gap:0.5rem;">
                         <div style="flex:1; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; min-width:60px;">

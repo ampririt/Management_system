@@ -1,5 +1,7 @@
 # Finance & Trading Dashboard
 
+**Version 1.0.0** · single-owner finance command center on Google Apps Script + Google Sheets.
+
 A personal-finance and **international-trading** dashboard. It's built for a simple
 arbitrage business — **buy products in Japan (pay in ¥), resell in Vietnam (receive ₫),
 then convert ₫ back to ¥** — and reports everything as **profit in your home currency (YEN)**.
@@ -69,20 +71,19 @@ wallet now, I'd receive X, total profit Y, margin Z%"*.
 | **Home** | Cash on hand, credit available/used, trading net profit, ₫ wallet, income/expenses, best sellers, trend & expense charts |
 | **Income / Expenses** | Everyday personal ledgers |
 | **Credit Cards** | Cards with limits & balances; **charges are deferred** (no cash impact), **payments are cash outflows**. Includes **Subscriptions & Auto-Charges** (electricity, Netflix…) that auto-post each month |
-| **Trading & FX** | The profit model above: revenue/COGS/margin/FX, ₫ wallet, conversion log, rate-vs-fixed chart, profit breakdown, and the *convert-now* projection |
-| **Stock** | Products. Add a product by entering **cost (¥)** and **sell price (¥)** — the **₫ price is auto-calculated** = ¥ × fixed rate |
+| **Trading & FX** | The profit model above: realized/unrealized FX, ₫ wallet, conversion log, rate-vs-fixed chart, profit breakdown, and the *convert-now* projection |
+| **Transactions** | Completed selling history — each Purchase Order marked *Done* posts its VND sale here |
 | **Purchase Orders** | Workflow board: *Preparing → Delivery → Awaiting Payment → Done*. Supports **deposit + balance** (e.g. 30% prepaid, 70% on receipt) with a paid/owed progress bar. Columns with > 8 orders collapse with a **Show all** toggle |
 | **Suppliers** | Vendor directory |
-| **Cash Flow** | Inflow/outflow/net KPIs, running-balance line, 6-month bars, and a daily heatmap |
-| **P&L** | Auto-generated profit & loss from the ledger |
-| **Settings** | Base & selling **currencies**, the **fixed rate**, VAT, export, demo data, reset |
+| **Cash Flow** | Inflow/outflow/net KPIs, running-balance line, 6-month bars, and a **Daily Net Heatmap** — a full Mon→Sun month calendar (its own month filter) with each day's net plus inflow/outflow |
+| **Settings** | Base & selling **currencies**, the **fixed rate**, opening cash, export, demo data, reset |
 
 ---
 
 ## Common tasks
 
-- **Add a product:** Stock → Add Product → enter ¥ cost and ¥ sell price → the ₫ price fills in automatically.
-- **Record a sale:** on Stock, lower a product's quantity (the `−` button). Outbound moves feed ₫ revenue, best sellers, and trading metrics.
+- **Record a purchase + sale:** Purchase Orders → New PO → add line items with **qty** and **unit sell (¥)**. The full ¥ is paid immediately (cash or card); the VND owed is derived = ¥ × qty × fixed rate.
+- **Complete a sale:** move the PO to **Done** when the Vietnam customer pays. The VND lands in your ₫ wallet and the order appears under **Transactions**.
 - **Log a currency exchange:** Trading & FX → *Convert ₫ → ¥* → enter the ₫ amount, the real rate, and any fee. The log shows gain/loss vs the fixed rate.
 - **Buy something on credit:** Credit Cards → Add Charge (this raises the card balance but doesn't touch cash). Pay it later with a *Payment* (cash outflow → shows on Cash Flow).
 - **Set up a bill/subscription:** Credit Cards → Add Auto-Charge (amount + day of month). It posts itself each month; use **Run now** to catch up.
@@ -93,9 +94,9 @@ wallet now, I'd receive X, total profit Y, margin Z%"*.
 
 ## Data model (Google Sheets tabs)
 
-`Settings`, `Income`, `Expenses`, `Stock`, `StockMoves`, `PurchaseOrders`, `POLineItems`,
-`Suppliers`, `Conversions` (₫→¥ exchanges), `CreditCards`, `CardTxns`, `Recurring`
-(auto-charges), `VATTimeline`, `AuditLog`.
+`Settings`, `Income`, `Expenses`, `PurchaseOrders`, `POLineItems`, `Suppliers`,
+`Conversions` (₫→¥ exchanges), `CreditCards`, `CardTxns`, `Recurring` (auto-charges),
+`Transactions` (completed sales), `AuditLog`.
 
 ```
 [ Browser: app.html ] ──google.script.run──> [ Code.gs ] ──SpreadsheetApp──> [ Google Sheets ]
@@ -104,3 +105,17 @@ wallet now, I'd receive X, total profit Y, margin Z%"*.
 
 `getBootstrap()` returns the whole dataset in one round-trip and auto-posts any due
 recurring charges. Reads are batched via `Range.getValues()`.
+
+---
+
+## Release notes
+
+### v1.0.0
+First stable release. The "v3" money model is the foundation:
+
+- **One price per good (¥).** The VND amount is always derived (`¥ × qty × fixed rate`), so buying and reselling is break-even by design. **All profit comes from converting the ₫ wallet back to ¥ at a better-than-fixed rate.** VAT, the standalone Stock page, and the separate P&L view were removed in favor of this simpler model.
+- **Two wallets** (¥ cash, ₫ held) with an opening-cash setting, a **credit-card** subsystem (deferred charges, cash payments, monthly auto-charges), and a **Purchase Order** pipeline with deposit/balance tracking.
+- **Trading & FX** profit model: realized FX (timing gain/loss vs the fixed rate) + unrealized FX on held ₫, with a *convert-now* projection.
+- **Cash Flow** with a redesigned **Daily Net Heatmap** — a full Mon→Sun month calendar on its own month filter (independent of the page date range), each day showing its net plus inflow/outflow, shaded by size. Tints kept light so in-cell figures stay WCAG-AA readable.
+- **Realized FX profit** totals now sum per-conversion rounded values, so the headline figure always equals the sum of the rows shown in the conversion table.
+- Runs fully offline as a **demo** (sample dataset, in-memory) when opened without the Google backend.
