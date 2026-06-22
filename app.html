@@ -798,8 +798,8 @@ function demoSrv(fn, a, onDone) {
         case 'createPO': { const po=a[0]; const li=po.lineItems||[]; let sub=0,vatA=0; li.forEach(l=>{const lt=Number(l.quantity)*Number(l.unitCost); sub+=lt; if(l.vatApplicable) vatA+=lt*vat/100;}); const poId=po.poId||('PO-'+String(Date.now()).slice(-5)); const header={poId,supplierId:po.supplierId||'',supplierName:po.supplierName||'',orderDate:po.orderDate||todayISO(),expectedDate:po.expectedDate||'',actualDeliveryDate:'',currency:'JPY',fxRate:1,subtotal:Math.round(sub),vatAmount:Math.round(vatA),totalGross:Math.round(sub+vatA),status:'Preparing',paymentDueDate:po.paymentDueDate||'',paidDate:'',notes:po.notes||'',paidAmount:Math.round(Number(po.depositAmount)||0),lineItems:li.map(l=>({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable}))}; S.pos.push(header); li.forEach(l=>S.poLines.push({poId,productName:l.productName,category:l.category,quantity:l.quantity,unitCost:l.unitCost,unitSellVnd:l.unitSellVnd,vatApplicable:!!l.vatApplicable})); if(po.cardId){ S.cardTxns.push({id:uuid(),cardId:po.cardId,date:header.orderDate,description:'PO '+poId+(li[0]&&li[0].productName?' — '+li[0].productName:''),category:'Purchase Order',amount:header.totalGross,type:'charge',poId:poId}); } break; }
         case 'advancePOStatus': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.status=a[1]; if(a[1]==='Not Payment'){ po.actualDeliveryDate=todayISO(); } if(a[1]==='Done'){ po.paidDate=todayISO(); const lines=S.poLines.filter(l=>l.poId===po.poId); lines.forEach(l=>S.transactions.push({id:uuid(), date:po.paidDate, productName:l.productName, supplierName:po.supplierName, quantity:l.quantity, unitCost:l.unitCost, unitSellVnd:l.unitSellVnd, totalCost:l.quantity*l.unitCost, totalSellVnd:l.quantity*l.unitSellVnd, poId:po.poId})); } } break; }
         case 'recordPOPayment': { const po=S.pos.find(p=>p.poId===a[0]); if(po){ po.paidAmount=(Number(po.paidAmount)||0)+(Number(a[1])||0); if(po.paidAmount>=Number(po.totalGross)&&!po.paidDate) po.paidDate=todayISO(); } break; }
-        case 'updatePO': { const id=a[0].poId; S.pos=S.pos.filter(p=>p.poId!==id); S.poLines=S.poLines.filter(l=>l.poId!==id); return demoSrv('createPO',a,onDone); }
-        case 'deletePO': S.pos=S.pos.filter(p=>p.poId!==a[0]); S.poLines=S.poLines.filter(l=>l.poId!==a[0]); break;
+        case 'updatePO': { const id=a[0].poId; const oldPO=S.pos.find(p=>p.poId===id); if(oldPO){ a[0].status=oldPO.status; a[0].paymentDueDate=oldPO.paymentDueDate; a[0].paidDate=oldPO.paidDate; a[0].paidAmount=oldPO.paidAmount; a[0].expectedDate=oldPO.expectedDate; a[0].actualDeliveryDate=oldPO.actualDeliveryDate; a[0].notes=oldPO.notes; } S.pos=S.pos.filter(p=>p.poId!==id); S.poLines=S.poLines.filter(l=>l.poId!==id); S.cardTxns=S.cardTxns.filter(t=>t.poId!==id); return demoSrv('createPO',a,onDone); }
+        case 'deletePO': S.pos=S.pos.filter(p=>p.poId!==a[0]); S.poLines=S.poLines.filter(l=>l.poId!==a[0]); S.cardTxns=S.cardTxns.filter(t=>t.poId!==a[0]); break;
         case 'upsertSupplier': upsert(S.suppliers,'supplierId',a[0]); break;
         case 'deleteSupplier': S.suppliers=S.suppliers.filter(x=>x.supplierId!==a[0]); break;
         case 'saveConversion': { const t=a[0]; const rate=Number(t.rate)||0; const row=Object.assign({},t,{id:t.id||uuid(),jpyReceived:rate>0?Math.round(Number(t.vndAmount)/rate):0}); if(t.id){const i=byId(S.conversions,'id',t.id); if(i>=0)S.conversions[i]=row; else S.conversions.push(row);} else S.conversions.push(row); break; }
@@ -1172,8 +1172,13 @@ function openPOModal(existing) {
     const supOpts = STATE.suppliers.length
         ? STATE.suppliers.map(s => `<option value="${s.supplierId}" ${po.supplierId===s.supplierId?'selected':''}>${s.name}</option>`).join('')
         : '<option value="">— add a supplier first —</option>';
+    let poCardId = '';
+    if (existing) {
+        const txn = (STATE.cardTxns || []).find(t => t.poId === po.poId);
+        if (txn) poCardId = txn.cardId;
+    }
     const cardOpts = (STATE.creditCards && STATE.creditCards.length)
-        ? '<option value="">— none (cash) —</option>' + STATE.creditCards.map(c => `<option value="${c.cardId}">${c.name}</option>`).join('')
+        ? '<option value="">— none (cash) —</option>' + STATE.creditCards.map(c => `<option value="${c.cardId}" ${poCardId===c.cardId?'selected':''}>${c.name}</option>`).join('')
         : '<option value="">— no cards yet —</option>';
 
     const html = `
@@ -1188,7 +1193,7 @@ function openPOModal(existing) {
         <div class="form-row"><label>Sell Price in ${fxCode()} (${fxSym()}) — auto = ${baseSym()} × ${fixedRate()}</label>
             <input id="po-price-vnd" type="number" readonly value="0" style="background:var(--surface-2); color:var(--text-2)">
         </div>
-        ${existing ? '' : `<div class="form-row"><label>Credit Card — charge this PO to a card</label><select id="po-card">${cardOpts}</select></div>`}
+        <div class="form-row"><label>Credit Card — charge this PO to a card</label><select id="po-card">${cardOpts}</select></div>
         <div class="form-row">
             <small id="po-margin-preview" style="color:var(--text-2); font-size:0.78rem; background:var(--surface-2); padding:0.5rem 0.7rem; border-radius:8px;"></small>
         </div>`;
@@ -1204,7 +1209,7 @@ function openPOModal(existing) {
             poId: po.poId || undefined,
             supplierId: supId, supplierName: supplier?.name || '',
             orderDate: document.getElementById('po-od').value,
-            cardId: existing ? '' : (cardEl ? cardEl.value : ''),
+            cardId: cardEl ? cardEl.value : '',
             lineItems: [{ productName, category: '', quantity: qty, unitCost: cost, unitSellVnd: Math.round(cost * fixedRate()), vatApplicable: false }]
         };
         const fnName = existing ? 'updatePO' : 'createPO';

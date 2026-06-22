@@ -411,6 +411,34 @@ function createPO(po) {
   return header;
 }
 
+function updatePO(po) {
+  const existing = _rows(TABS.PURCHASE_ORDERS).find((p) => p.poId === po.poId);
+  if (existing) {
+    po.status = existing.status;
+    po.paymentDueDate = existing.paymentDueDate;
+    po.paidDate = existing.paidDate;
+    po.paidAmount = existing.paidAmount;
+    po.expectedDate = existing.expectedDate;
+    po.actualDeliveryDate = existing.actualDeliveryDate;
+    po.notes = existing.notes;
+    deletePO(po.poId);
+    
+    // Also remove the old card charge if there was one
+    const sh = _sheet(TABS.CARD_TXNS);
+    const last = sh.getLastRow();
+    if (last >= 2) {
+      const col = HEADERS.CardTxns.indexOf("poId") + 1;
+      const ids = sh.getRange(2, col, last - 1, 1).getValues();
+      for (let i = ids.length - 1; i >= 0; i--) {
+        if (String(ids[i][0]) === String(po.poId)) {
+          sh.deleteRow(i + 2);
+        }
+      }
+    }
+  }
+  return createPO(po);
+}
+
 /** Record a (partial) payment against an order. Tracks deposit + balance. */
 function recordPOPayment(poId, amount) {
   const pos = _rows(TABS.PURCHASE_ORDERS);
