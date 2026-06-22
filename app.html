@@ -1699,7 +1699,7 @@ function renderPOs() {
                 <div class="row-btns">
                     ${(p.status!=='Preparing' && !fullyPaid) ? `<button class="btn primary sm" onclick="openPOPaymentModal('${p.poId}')"><span class="material-icons">payments</span> Pay</button>` : ''}
                     ${next ? `<button class="btn success sm" onclick="advancePO('${p.poId}')"><span class="material-icons">arrow_forward</span> ${STATUS_LABEL[next]||next}</button>` : ''}
-                    ${p.status==='Preparing' ? `<button class="btn ghost sm" onclick="editPO('${p.poId}')"><span class="material-icons">edit</span></button>` : ''}
+                    ${p.status!=='Done' ? `<button class="btn ghost sm" onclick="editPO('${p.poId}')"><span class="material-icons">edit</span></button>` : ''}
                     <button class="btn ghost sm" onclick="delPO('${p.poId}')"><span class="material-icons">delete</span></button>
                 </div>
             </div>`;

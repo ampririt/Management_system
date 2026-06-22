@@ -398,7 +398,7 @@ function createPO(po) {
       vatAmount += lineTotal * (rate / 100);
     }
   });
-  const header = { poId, supplierId: po.supplierId || "", supplierName: po.supplierName || "", orderDate, expectedDate: po.expectedDate || "", actualDeliveryDate: "", currency: po.currency || "JPY", fxRate: po.fxRate || 1, subtotal: Math.round(subtotal), vatAmount: Math.round(vatAmount), totalGross: Math.round(subtotal + vatAmount), status: "Preparing", paymentDueDate: po.paymentDueDate || "", paidDate: "", notes: po.notes || "", paidAmount: Math.round(Number(po.depositAmount) || 0) };
+  const header = { poId, supplierId: po.supplierId || "", supplierName: po.supplierName || "", orderDate, expectedDate: po.expectedDate || "", actualDeliveryDate: po.actualDeliveryDate || "", currency: po.currency || "JPY", fxRate: po.fxRate || 1, subtotal: Math.round(subtotal), vatAmount: Math.round(vatAmount), totalGross: Math.round(subtotal + vatAmount), status: po.status || "Preparing", paymentDueDate: po.paymentDueDate || "", paidDate: po.paidDate || "", notes: po.notes || "", paidAmount: po.paidAmount !== undefined ? po.paidAmount : Math.round(Number(po.depositAmount) || 0) };
   _appendObject(TABS.PURCHASE_ORDERS, header);
   (po.lineItems || []).forEach((li) => _appendObject(TABS.PO_LINE_ITEMS, { poId, productName: li.productName || "", category: li.category || "", quantity: li.quantity, unitCost: li.unitCost, unitSellVnd: li.unitSellVnd || 0, vatApplicable: !!li.vatApplicable }));
   // If this PO is charged to a credit card, post a matching card charge so it
