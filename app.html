@@ -1649,7 +1649,8 @@ function renderPOs() {
     ['Preparing','Delivery','Not Payment','Done'].forEach(st => {
         const col = document.querySelector(`.kcol[data-status="${st}"] .lst`);
         const items = all.filter(p => p.status===st);
-        document.getElementById('c-'+st.replace(' ','')).textContent = items.length;
+        const sumCost = items.reduce((a,p)=> a + (Number(p.totalGross)||0), 0);
+        document.getElementById('c-'+st.replace(' ','')).textContent = `${items.length} · ${fmt(sumCost)}`;
         if (!items.length) { col.innerHTML = '<div class="empty" style="padding:1.5rem 0">—</div>'; return; }
         const LIMIT = 8;
         const expanded = !!PO_EXPANDED[st];
