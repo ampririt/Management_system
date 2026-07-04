@@ -1699,22 +1699,36 @@ function renderDashboard() {
         const inc = STATE.income || [];
         const exp = STATE.expenses || [];
         
-        let incYen = 0, incVnd = 0;
+        let incTotalYen = 0, incTotalVnd = 0;
         inc.forEach(r => {
             const amt = Number(r.amountGross) || 0;
             const c = (r.currency || baseCode()).toUpperCase();
-            if (c === 'JPY') incYen += amt;
-            else if (c === 'VND') incVnd += amt;
-            else { if (baseCode() === 'JPY') incYen += amt; else incVnd += amt; }
+            if (c === 'JPY') {
+                incTotalYen += amt;
+                incTotalVnd += amt * fixedRate();
+            } else if (c === 'VND') {
+                incTotalVnd += amt;
+                incTotalYen += amt / fixedRate();
+            } else {
+                if (baseCode() === 'JPY') { incTotalYen += amt; incTotalVnd += amt * fixedRate(); }
+                else { incTotalVnd += amt; incTotalYen += amt / fixedRate(); }
+            }
         });
         
-        let expYen = 0, expVnd = 0;
+        let expTotalYen = 0, expTotalVnd = 0;
         exp.forEach(r => {
             const amt = Number(r.amountGross) || 0;
             const c = (r.currency || baseCode()).toUpperCase();
-            if (c === 'JPY') expYen += amt;
-            else if (c === 'VND') expVnd += amt;
-            else { if (baseCode() === 'JPY') expYen += amt; else expVnd += amt; }
+            if (c === 'JPY') {
+                expTotalYen += amt;
+                expTotalVnd += amt * fixedRate();
+            } else if (c === 'VND') {
+                expTotalVnd += amt;
+                expTotalYen += amt / fixedRate();
+            } else {
+                if (baseCode() === 'JPY') { expTotalYen += amt; expTotalVnd += amt * fixedRate(); }
+                else { expTotalVnd += amt; expTotalYen += amt / fixedRate(); }
+            }
         });
         const unpaid = (STATE.pos || []).filter(p => p.status==='Not Payment');
         
@@ -1730,9 +1744,9 @@ function renderDashboard() {
         const fmtYen = v => '¥' + Math.round(Number(v)||0).toLocaleString();
         const fmtDong = v => '₫' + Math.round(Number(v)||0).toLocaleString();
 
-        if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmtYen(incYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(incVnd)}</span>`;
+        if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmtDong(incTotalVnd)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtYen(incTotalYen)}</span>`;
         if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' total transactions';
-        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtYen(expYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(expVnd)}</span>`;
+        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtDong(expTotalVnd)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtYen(expTotalYen)}</span>`;
         if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' total transactions';
 
         try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
