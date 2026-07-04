@@ -161,13 +161,16 @@ function _rows(sheetName) {
   const last = sh.getLastRow();
   if (last < 2) return [];
   const headers = HEADERS[sheetName];
-  const values = sh.getRange(2, 1, last - 1, headers.length).getValues();
+  const lastCol = sh.getLastColumn();
+  const fetchCols = Math.min(headers.length, lastCol);
+  if (fetchCols < 1) return [];
+  const values = sh.getRange(2, 1, last - 1, fetchCols).getValues();
   return values.map((row) => {
     const obj = {};
     headers.forEach((h, i) => {
       let val = row[i];
-      if (val instanceof Date) val = val.toISOString();
-      else if (val === undefined || val === null) val = "";
+      if (val === undefined || val === null || i >= lastCol) val = "";
+      else if (val instanceof Date) val = val.toISOString();
       obj[h] = val;
     });
     return obj;
@@ -250,16 +253,22 @@ function _splitVat(amountGross, isVatApplicable, dateStr) {
 function getBootstrap() {
   const safe = (label, fn, fallback) => {
     try { return fn(); }
-    catch (e) { return fallback; }
+    catch (e) {
+      console.error("Error loading " + label + ":", e);
+      return fallback;
+    }
   };
   // Resolve the database spreadsheet, and self-heal the schema only when a tab is
-  // missing (e.g. after adding Recurring/Conversions). getBootstrap runs on every
-  // refresh, so we avoid the cost of a full setup unless something is actually absent.
+  // missing or has fewer columns than defined in HEADERS.
   let ssId;
   try {
     ssId = _getSsId();
     const ss = SpreadsheetApp.openById(ssId);
-    const missing = Object.keys(HEADERS).some((t) => !ss.getSheetByName(t));
+    const missing = Object.keys(HEADERS).some((t) => {
+      const sh = ss.getSheetByName(t);
+      if (!sh) return true;
+      return sh.getLastColumn() < HEADERS[t].length;
+    });
     if (missing) setupWorkbook();
   } catch (e) {
     return { ok: false, error: 'Cannot open the database spreadsheet (' + (e.message || e) + '). '
