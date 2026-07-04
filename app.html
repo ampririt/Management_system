@@ -388,6 +388,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                 <div class="kpi"><div class="lbl"><span class="material-icons">credit_card</span> Credit Available</div><div class="val" id="k-credit">¥0</div><div class="delta" id="k-credit-sub">¥0 used of ¥0</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">trending_up</span> Total Income</div><div class="val" id="k-inc" style="line-height:1.2">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">trending_down</span> Total Expenses</div><div class="val" id="k-exp" style="line-height:1.2">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
+                <div class="kpi accent"><div class="lbl"><span class="material-icons">savings</span> Margin</div><div class="val" id="k-margin" style="line-height:1.2">¥0</div><div class="delta">Income - Expenses</div></div>
             </div>
 
             <!-- Suppliers ranked by total purchased -->
@@ -1746,8 +1747,12 @@ function renderDashboard() {
 
         if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmtDong(incTotalVnd)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtYen(incTotalYen)}</span>`;
         if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' total transactions';
-        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtDong(expTotalVnd)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtYen(expTotalYen)}</span>`;
+        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtYen(expTotalYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(expTotalVnd)}</span>`;
         if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' total transactions';
+        
+        const marginYen = incTotalYen - expTotalYen;
+        const marginVnd = incTotalVnd - expTotalVnd;
+        if (document.getElementById('k-margin')) document.getElementById('k-margin').innerHTML = `${fmtYen(marginYen)} <br> <span style="font-size:0.75rem; color:rgba(255,255,255,0.8); font-weight:500">${fmtDong(marginVnd)}</span>`;
 
         try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
 
