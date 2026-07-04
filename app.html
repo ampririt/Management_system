@@ -1290,11 +1290,18 @@ function renderAll() {
     document.getElementById('set-vat').value = STATE.settings.vatRate;
     document.getElementById('set-fixed').value = STATE.settings.fixedRateVND;
     document.getElementById('set-fixed-hint').textContent = `e.g. 1 ${baseSym()} = ${fixedRate()} ${fxSym()}. Used to value foreign sales in your base currency and as the baseline each real conversion is compared against on the Trading page.`;
-    renderDashboard();
-    renderIncome(); renderExpenses();
-    renderPOs(); renderTransactions(); renderSuppliers();
-    renderCashFlow(); renderPL();
-    renderTrading(); renderCards();
+    // Wrap each section in try/catch so a crash in one never blocks the others
+    const safe = (label, fn) => { try { fn(); } catch(e) { console.error('[renderAll] ' + label + ' failed:', e); } };
+    safe('Dashboard',    () => renderDashboard());
+    safe('Income',       () => renderIncome());
+    safe('Expenses',     () => renderExpenses());
+    safe('POs',          () => renderPOs());
+    safe('Transactions', () => renderTransactions());
+    safe('Suppliers',    () => renderSuppliers());
+    safe('CashFlow',     () => renderCashFlow());
+    safe('PL',           () => renderPL());
+    safe('Trading',      () => renderTrading());
+    safe('Cards',        () => renderCards());
 }
 
 let CHARTS = {};
@@ -1633,7 +1640,8 @@ function updateBuyPreview() {
 }
 
 function renderPOs() {
-    const all = STATE.pos;
+    // Normalise status strings — trim whitespace in case Google Sheets returns padded values
+    const all = (STATE.pos || []).map(p => Object.assign({}, p, { status: String(p.status||'').trim() }));
     const open = all.filter(p => p.status!=='Done').length;
     const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
     document.getElementById('p-open').textContent = open;
@@ -1642,7 +1650,7 @@ function renderPOs() {
 
     ['Preparing','Delivery','Not Payment','Done'].forEach(st => {
         const col = document.querySelector(`.kcol[data-status="${st}"] .lst`);
-        if (!col) return;  // safety guard
+        if (!col) { console.warn('[renderPOs] column not found for status:', st); return; }
         const items = all.filter(p => p.status===st);
         const sumCost = items.reduce((a,p)=> a + (Number(p.totalGross)||0), 0);
         const pillId = 'c-' + st.replace(/\s+/g, '');
