@@ -1337,40 +1337,6 @@ function chartUp(id, cfg) {
 //      against the fixed rate:  Σ (¥ received − ₫ converted ÷ fixed)
 //
 //   Realized profit (¥) = margin@fixed + realized FX.
-function tradingMetrics() {
-    const fx = fixedRate();
-    const base = baseCode(), fcur = fxCode();
-    const stockBy = {}; STATE.stock.forEach(p => { stockBy[p.sku] = p; });
-
-    // --- Channel A: product trading margin -----------------------------------
-    // A sale realizes margin once stock has shipped (status past "Preparing").
-    let revVnd = 0, revYen = 0, cogs = 0;   // revVnd = ₫ (foreign) sales, revYen = ¥-direct sales
-    (STATE.sales || []).forEach(s => {
-        if (s.status === 'Preparing') return;            // not shipped yet → no margin
-        const p = stockBy[s.sku] || {};
-        const q = Number(s.quantity) || 0;
-        const total = Number(s.totalVnd) || 0;           // amount in the sale's OWN currency
-        cogs += q * (Number(p.unitCost) || 0);           // COGS is always in ¥
-        if (saleCur(s) === fcur) revVnd += total; else revYen += total;
-    });
-    const revAtFixed = revVnd / fx + revYen;             // all sales valued in ¥ (₫ at the fixed rate)
-    const marginAtFixed = revAtFixed - cogs;             // baseline trading profit in ¥
-
-    // --- Channel B: realized FX from currency exchange -----------------------
-    let realizedFx = 0;
-    (STATE.conversions || []).forEach(c => {
-        const vnd = Number(c.vndAmount) || 0;
-        const net = (Number(c.jpyReceived) || 0) - (Number(c.fee) || 0);
-        realizedFx += net - vnd / fx;                    // ¥ gained/lost vs converting at the fixed rate
-    });
-    const vndConvAll = (STATE.conversions || []).reduce((a,c)=> a + (Number(c.vndAmount)||0), 0);
-
-    // ₫ still held = the live foreign-currency cash wallet (so trading view = dashboard).
-    const wallet = wallets().dong;
-    const netReal = marginAtFixed + realizedFx;          // realized profit in ¥ (₫ valued at fixed)
-    return { fx, base, fcur, revVnd, revYen, revAtFixed, cogs, marginAtFixed,
-             realizedFx, wallet, vndConvAll, netReal };
-}
 // Credit-card metrics: balance = opening + charges − payments (all-time).
 // Credit-card balances. A card's balance = opening + manual charges − payments + any
 // expense charged to it (paymentMethod 'credit'). Credit charges never touch cash.
@@ -1393,109 +1359,6 @@ function cardMetrics() {
         + sum((STATE.expenses||[]).filter(e => e.paymentMethod === 'credit' && inMonth(e)), 'amountGross');
     const paidPeriod    = sum(txns.filter(t => t.type === 'payment' && inMonth(t)), 'amount');
     return { byCard, used, limit, available: limit - used, chargedPeriod, paidPeriod };
-}
-// Two cash wallets + credit. All money flows resolve here:
-//   ¥ wallet  = ¥ income − ¥ cash-expenses − card payments + ¥ from conversions + ¥ sales
-//   ₫ wallet  = ₫ income/sales − ₫ converted − ₫ cash-expenses
-// Credit-charged expenses defer the cash hit (they sit in the card balance instead).
-function wallets() {
-    const base = baseCode(), fx = fxCode();
-    let yen = 0, dong = 0;
-    (STATE.income || []).forEach(r => { const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong += amt; else yen += amt; });
-    (STATE.expenses || []).forEach(r => { if (r.paymentMethod === 'credit') return; const amt = Number(r.amountGross)||0; if ((r.currency||base) === fx) dong -= amt; else yen -= amt; });
-    (STATE.sales || []).forEach(s => { const amt = Number(s.paidVnd)||0; if ((s.currency||fx) === base) yen += amt; else dong += amt; });
-    (STATE.conversions || []).forEach(c => { dong -= Number(c.vndAmount)||0; yen += (Number(c.jpyReceived)||0) - (Number(c.fee)||0); });
-    (STATE.cardTxns || []).forEach(t => { if (t.type === 'payment') yen -= Number(t.amount)||0; });
-    return { yen, dong, credit: cardMetrics() };
-}
-function cashPosition() { return wallets().yen; }
-
-function renderDashboard() {
-    const inc = STATE.income.filter(inMonth);
-    const exp = STATE.expenses.filter(inMonth);
-    const gross = sum(inc,'amountGross');
-    const totalExp = sum(exp,'amountGross');
-    const unpaid = STATE.pos.filter(p => p.status==='Not Payment');
-    const t = tradingMetrics();
-    const w = wallets();
-    const cc = w.credit;
-
-    document.getElementById('k-cash').textContent = fmt(w.yen);
-    document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
-    document.getElementById('k-credit').textContent = fmt(cc.available);
-    document.getElementById('k-credit-sub').textContent = `${fmt(cc.used)} used of ${fmt(cc.limit)}`;
-    document.getElementById('k-inc').textContent = fmt(gross);
-    document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
-    document.getElementById('k-exp').textContent = fmt(totalExp);
-    document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
-
-    renderSupplierRank();
-
-    document.getElementById('badge-po').textContent = unpaid.length + STATE.pos.filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
-    document.getElementById('chip-alerts').textContent = unpaid.length;
-
-    // Generate last 6 months labels
-    const months = last6Months();
-
-    const bucket = (arr, key) => months.map(m => {
-        return arr.reduce((total, row) => {
-            const rowDate = dstr(row.date);
-            if (rowDate && rowDate.substring(0, 7) === m) {
-                return total + (Number(row[key]) || 0);
-            }
-            return total;
-        }, 0);
-    });
-
-    chartUp('trendChart', {
-        type:'line',
-        data: { 
-            labels: months.map(m => {
-                const [y, mm] = m.split('-');
-                return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
-            }), 
-            datasets:[
-                { label:'Income',  data: bucket(STATE.income,'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
-                { label:'Expense', data: bucket(STATE.expenses,'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
-            ]
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: true, ticks: { callback: v => (STATE.settings.currencySymbol || '¥') + v.toLocaleString() } } }
-        }
-    });
-
-    const cats = {};
-    exp.forEach(e => {
-        const cat = e.category || 'Other';
-        cats[cat] = (cats[cat] || 0) + (Number(e.amountGross) || 0);
-    });
-    
-    const catLabels = Object.keys(cats);
-    const catData = Object.values(cats);
-    const colors = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b'];
-
-    chartUp('categoryChart', {
-        type:'doughnut',
-        data: { 
-            labels: catLabels.length ? catLabels : ['No data'],
-            datasets: [{ 
-                data: catData.length ? catData : [1], 
-                backgroundColor: colors,
-                borderWidth: 0
-            }] 
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-            }, 
-            cutout: '70%' 
-        }
-    });
 }
 
 // Normalize a record's amount to base currency (foreign converted at the fixed rate).
@@ -1826,91 +1689,113 @@ function wallets() {
 function cashPosition() { return wallets().yen; }
 
 function renderDashboard() {
-    const inc = STATE.income.filter(inMonth);
-    const exp = STATE.expenses.filter(inMonth);
-    const gross = sum(inc,'amountGross');
-    const totalExp = sum(exp,'amountGross');
-    const unpaid = STATE.pos.filter(p => p.status==='Not Payment');
-    const t = tradingMetrics();
-    const w = wallets();
-    const cc = w.credit;
+    try {
+        console.log('[renderDashboard] starting...', {
+            incomeCount: STATE.income ? STATE.income.length : 'null',
+            expensesCount: STATE.expenses ? STATE.expenses.length : 'null',
+            posCount: STATE.pos ? STATE.pos.length : 'null'
+        });
+        
+        const inc = (STATE.income || []).filter(inMonth);
+        const exp = (STATE.expenses || []).filter(inMonth);
+        const gross = sum(inc,'amountGross');
+        const totalExp = sum(exp,'amountGross');
+        const unpaid = (STATE.pos || []).filter(p => p.status==='Not Payment');
+        
+        let t = {}, w = {}, cc = {};
+        try { t = tradingMetrics(); } catch(e) { console.error('tradingMetrics failed:', e); }
+        try { w = wallets(); cc = w.credit || {}; } catch(e) { console.error('wallets/credit failed:', e); }
 
-    document.getElementById('k-cash').textContent = fmt(w.yen);
-    document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
-    document.getElementById('k-credit').textContent = fmt(cc.available);
-    document.getElementById('k-credit-sub').textContent = `${fmt(cc.used)} used of ${fmt(cc.limit)}`;
-    document.getElementById('k-inc').textContent = fmt(gross);
-    document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
-    document.getElementById('k-exp').textContent = fmt(totalExp);
-    document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
+        if (document.getElementById('k-cash')) document.getElementById('k-cash').textContent = fmt(w.yen || 0);
+        if (document.getElementById('k-cash-sub')) document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
+        if (document.getElementById('k-credit')) document.getElementById('k-credit').textContent = fmt(cc.available || 0);
+        if (document.getElementById('k-credit-sub')) document.getElementById('k-credit-sub').textContent = `${fmt(cc.used || 0)} used of ${fmt(cc.limit || 0)}`;
+        if (document.getElementById('k-inc')) document.getElementById('k-inc').textContent = fmt(gross);
+        if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
+        if (document.getElementById('k-exp')) document.getElementById('k-exp').textContent = fmt(totalExp);
+        if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
 
-    renderSupplierRank();
+        try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
 
-    document.getElementById('badge-po').textContent = unpaid.length + STATE.pos.filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
-    document.getElementById('chip-alerts').textContent = unpaid.length;
-
-    // Generate last 6 months labels
-    const months = last6Months();
-
-    const bucket = (arr, key) => months.map(m => {
-        return arr.reduce((total, row) => {
-            const rowDate = dstr(row.date);
-            if (rowDate && rowDate.substring(0, 7) === m) {
-                return total + (Number(row[key]) || 0);
+        try {
+            if (document.getElementById('badge-po')) {
+                document.getElementById('badge-po').textContent = unpaid.length + (STATE.pos || []).filter(p=>p.status==='Delivery' && p.expectedDate && dstr(p.expectedDate)<todayISO()).length;
             }
-            return total;
-        }, 0);
-    });
+            if (document.getElementById('chip-alerts')) {
+                document.getElementById('chip-alerts').textContent = unpaid.length;
+            }
+        } catch(e) { console.error('badge-po/chip-alerts failed:', e); }
 
-    chartUp('trendChart', {
-        type:'line',
-        data: { 
-            labels: months.map(m => {
-                const [y, mm] = m.split('-');
-                return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
-            }), 
-            datasets:[
-                { label:'Income',  data: bucket(STATE.income,'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
-                { label:'Expense', data: bucket(STATE.expenses,'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
-            ]
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: true, ticks: { callback: v => (STATE.settings.currencySymbol || '¥') + v.toLocaleString() } } }
+        // Generate last 6 months labels
+        let months = [];
+        try {
+            months = last6Months();
+            const bucket = (arr, key) => months.map(m => {
+                return arr.reduce((total, row) => {
+                    const rowDate = dstr(row.date);
+                    if (rowDate && rowDate.substring(0, 7) === m) {
+                        return total + (Number(row[key]) || 0);
+                    }
+                    return total;
+                }, 0);
+            });
+
+            chartUp('trendChart', {
+                type:'line',
+                data: { 
+                    labels: months.map(m => {
+                        const [y, mm] = m.split('-');
+                        return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
+                    }), 
+                    datasets:[
+                        { label:'Income',  data: bucket(STATE.income || [],'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
+                        { label:'Expense', data: bucket(STATE.expenses || [],'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
+                    ]
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => (STATE.settings.currencySymbol || '¥') + v.toLocaleString() } } }
+                }
+            });
+
+            const cats = {};
+            (exp || []).forEach(e => {
+                const cat = e.category || 'Other';
+                cats[cat] = (cats[cat] || 0) + (Number(e.amountGross) || 0);
+            });
+            
+            const catLabels = Object.keys(cats);
+            const catData = Object.values(cats);
+            const colors = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b'];
+
+            chartUp('categoryChart', {
+                type:'doughnut',
+                data: { 
+                    labels: catLabels.length ? catLabels : ['No data'],
+                    datasets: [{ 
+                        data: catData.length ? catData : [1], 
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }] 
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                    }, 
+                    cutout: '70%' 
+                }
+            });
+        } catch(e) {
+            console.error('charts failed:', e);
         }
-    });
-
-    const cats = {};
-    exp.forEach(e => {
-        const cat = e.category || 'Other';
-        cats[cat] = (cats[cat] || 0) + (Number(e.amountGross) || 0);
-    });
-    
-    const catLabels = Object.keys(cats);
-    const catData = Object.values(cats);
-    const colors = ['#4f46e5','#3b82f6','#10b981','#ef4444','#f59e0b','#a855f7','#06b6d4','#64748b'];
-
-    chartUp('categoryChart', {
-        type:'doughnut',
-        data: { 
-            labels: catLabels.length ? catLabels : ['No data'],
-            datasets: [{ 
-                data: catData.length ? catData : [1], 
-                backgroundColor: colors,
-                borderWidth: 0
-            }] 
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-            }, 
-            cutout: '70%' 
-        }
-    });
+    } catch (e) {
+        console.error('[renderDashboard] Fatal error:', e);
+        toast('Dashboard render failed: ' + e.message, 'error');
+    }
 }
 
 function renderSuppliers() {
