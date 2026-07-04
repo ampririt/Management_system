@@ -335,9 +335,9 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
     <aside class="sidebar">
         <button class="mobile-close" onclick="toggleSidebar()" aria-label="Close menu"><span class="material-icons">close</span></button>
         <div class="brand">
-            <div class="logo">🌱</div>
+            <div class="logo">🐱</div>
             <div class="brand-text">
-                <h1 id="brand-name" contenteditable="true" spellcheck="false" title="Click to rename">Profit-Intel</h1>
+                <h1 id="brand-name" contenteditable="true" spellcheck="false" title="Click to rename">Haru chan shop</h1>
                 <p>Finance &amp; Trading</p>
             </div>
         </div>
@@ -458,7 +458,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <p class="subtitle">Workflow: Preparing → Delivery → Awaiting Payment → Done.</p>
             <div class="kpi-grid">
                 <div class="kpi"><div class="lbl">Open POs</div><div class="val" id="p-open">0</div></div>
-                <div class="kpi"><div class="lbl">Balance Owed</div><div class="val" id="p-pay">¥0</div><div class="delta">unpaid across orders</div></div>
+                <div class="kpi"><div class="lbl">Outstanding Payables</div><div class="val" id="p-pay">¥0</div><div class="delta">unpaid across orders</div></div>
                 <div class="kpi"><div class="lbl">On-Time Delivery</div><div class="val" id="p-ontime">—</div></div>
                 <div class="kpi"><div class="lbl">Total POs</div><div class="val" id="p-total">0</div></div>
             </div>
@@ -1738,7 +1738,7 @@ function openPOPaymentModal(poId) {
     const balance = Math.max(0, total - paid);
     const html = `
         <div style="background:var(--surface-2); padding:0.7rem 0.9rem; border-radius:8px; font-size:0.85rem; margin-bottom:0.3rem;">
-            Order total <strong>${fmt(total)}</strong> · Paid <strong>${fmt(paid)}</strong> · Balance owed <strong style="color:var(--amber)">${fmt(balance)}</strong>
+            Order total <strong>${fmt(total)}</strong> · Paid <strong>${fmt(paid)}</strong> · Outstanding Payables <strong style="color:var(--amber)">${fmt(balance)}</strong>
         </div>
         <div class="form-row"><label>Payment amount (${baseSym()})</label><input id="pp-amt" type="number" min="0" step="any" value="${balance}"></div>
         <div class="form-row" style="flex-direction:row; gap:0.4rem; flex-wrap:wrap;">
@@ -2424,7 +2424,7 @@ function renderSupplierRank() {
     const grand = ranked.reduce((a,s)=> a + s.total, 0) || 1;
     const medal = i => ['🥇','🥈','🥉'][i] || (i+1);
     el.innerHTML = `<table class="tbl">
-        <thead><tr><th>#</th><th>Supplier</th><th class="right">Orders</th><th class="right">Total Purchased</th><th class="right">Balance Owed</th><th>Share</th></tr></thead>
+        <thead><tr><th>#</th><th>Supplier</th><th class="right">Orders</th><th class="right">Total Purchased</th><th class="right">Outstanding Payables</th><th>Share</th></tr></thead>
         <tbody>${ranked.map((s,i)=>{
             const owed = Math.max(0, s.total - s.paid);
             const pct = Math.round(s.total / grand * 100);
@@ -2460,7 +2460,7 @@ document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', 
     let saved = null; try { saved = localStorage.getItem('brandName'); } catch(e){}
     if (saved) el.textContent = saved;
     document.title = el.textContent;
-    const save = () => { const v = (el.textContent||'').trim() || 'Profit-Intel'; el.textContent = v; document.title = v; try { localStorage.setItem('brandName', v); } catch(e){} };
+    const save = () => { const v = (el.textContent||'').trim() || 'Haru chan shop'; el.textContent = v; document.title = v; try { localStorage.setItem('brandName', v); } catch(e){} };
     el.addEventListener('blur', save);
     el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
 })();
