@@ -1652,7 +1652,8 @@ function renderPOs() {
     console.log('[renderPOs] pos count:', all.length, 'statuses:', all.map(p=>p.status));
 
     const open = all.filter(p => p.status!=='Done').length;
-    const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
+    // Calculate Outstanding Payables to match exactly the sum of the 'Awaiting Payment' (Not Payment) column
+    const outstanding = all.filter(p => p.status === 'Not Payment').reduce((a,p)=> a + (Number(p.totalGross)||0), 0);
     document.getElementById('p-open').textContent = open;
     document.getElementById('p-pay').textContent = fmt(outstanding);
     document.getElementById('p-total').textContent = all.length;
