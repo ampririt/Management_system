@@ -459,7 +459,6 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <div class="kpi-grid">
                 <div class="kpi"><div class="lbl">Open POs</div><div class="val" id="p-open">0</div></div>
                 <div class="kpi"><div class="lbl">Outstanding Payables</div><div class="val" id="p-pay">¥0</div><div class="delta">unpaid across orders</div></div>
-                <div class="kpi"><div class="lbl">On-Time Delivery</div><div class="val" id="p-ontime">—</div></div>
                 <div class="kpi"><div class="lbl">Total POs</div><div class="val" id="p-total">0</div></div>
             </div>
             <div class="panel">
@@ -1637,20 +1636,18 @@ function renderPOs() {
     const all = STATE.pos;
     const open = all.filter(p => p.status!=='Done').length;
     const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
-    const delivered = all.filter(p => p.actualDeliveryDate && p.expectedDate);
-    const onTimePct = delivered.length
-        ? Math.round(delivered.filter(p => dstr(p.actualDeliveryDate) <= dstr(p.expectedDate)).length / delivered.length * 100) + '%'
-        : '—';
     document.getElementById('p-open').textContent = open;
     document.getElementById('p-pay').textContent = fmt(outstanding);
-    document.getElementById('p-ontime').textContent = onTimePct;
     document.getElementById('p-total').textContent = all.length;
 
     ['Preparing','Delivery','Not Payment','Done'].forEach(st => {
         const col = document.querySelector(`.kcol[data-status="${st}"] .lst`);
+        if (!col) return;  // safety guard
         const items = all.filter(p => p.status===st);
         const sumCost = items.reduce((a,p)=> a + (Number(p.totalGross)||0), 0);
-        document.getElementById('c-'+st.replace(' ','')).textContent = `${items.length} · ${fmt(sumCost)}`;
+        const pillId = 'c-' + st.replace(/\s+/g, '');
+        const pill = document.getElementById(pillId);
+        if (pill) pill.textContent = `${items.length} · ${fmt(sumCost)}`;
         if (!items.length) { col.innerHTML = '<div class="empty" style="padding:1.5rem 0">—</div>'; return; }
         const LIMIT = 8;
         const expanded = !!PO_EXPANDED[st];
