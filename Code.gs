@@ -161,11 +161,25 @@ function _getColMap(sh, expectedHeaders) {
   if (lastCol < 1) return { map: {}, actual: [], lastCol: 0 };
   const actual = sh.getRange(1, 1, 1, lastCol).getValues()[0];
   const map = {};
+  
+  // Track which columns are already claimed by exact/case-insensitive match
+  const claimedIndices = new Set();
+  
   expectedHeaders.forEach(h => {
     let idx = actual.indexOf(h);
     if (idx === -1) idx = actual.findIndex(ah => String(ah).trim().toLowerCase() === String(h).trim().toLowerCase());
     map[h] = idx;
+    if (idx !== -1) claimedIndices.add(idx);
   });
+
+  // Second pass: fallback to original index if not found (e.g. user translated the header text)
+  expectedHeaders.forEach((h, originalIndex) => {
+    if (map[h] === -1 && originalIndex < lastCol && !claimedIndices.has(originalIndex)) {
+      map[h] = originalIndex;
+      claimedIndices.add(originalIndex);
+    }
+  });
+
   return { map, actual, lastCol };
 }
 
