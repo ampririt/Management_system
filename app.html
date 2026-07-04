@@ -1702,13 +1702,19 @@ function renderDashboard() {
         let incYen = 0, incVnd = 0;
         inc.forEach(r => {
             const amt = Number(r.amountGross) || 0;
-            if ((r.currency || baseCode()) === fxCode()) incVnd += amt; else incYen += amt;
+            const c = (r.currency || baseCode()).toUpperCase();
+            if (c === 'JPY') incYen += amt;
+            else if (c === 'VND') incVnd += amt;
+            else { if (baseCode() === 'JPY') incYen += amt; else incVnd += amt; }
         });
         
         let expYen = 0, expVnd = 0;
         exp.forEach(r => {
             const amt = Number(r.amountGross) || 0;
-            if ((r.currency || baseCode()) === fxCode()) expVnd += amt; else expYen += amt;
+            const c = (r.currency || baseCode()).toUpperCase();
+            if (c === 'JPY') expYen += amt;
+            else if (c === 'VND') expVnd += amt;
+            else { if (baseCode() === 'JPY') expYen += amt; else expVnd += amt; }
         });
         const unpaid = (STATE.pos || []).filter(p => p.status==='Not Payment');
         
@@ -1720,9 +1726,13 @@ function renderDashboard() {
         if (document.getElementById('k-cash-sub')) document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
         if (document.getElementById('k-credit')) document.getElementById('k-credit').textContent = fmt(cc.available || 0);
         if (document.getElementById('k-credit-sub')) document.getElementById('k-credit-sub').textContent = `${fmt(cc.used || 0)} used of ${fmt(cc.limit || 0)}`;
-        if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmt(incYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtVnd(incVnd)}</span>`;
+
+        const fmtYen = v => '¥' + Math.round(Number(v)||0).toLocaleString();
+        const fmtDong = v => '₫' + Math.round(Number(v)||0).toLocaleString();
+
+        if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmtYen(incYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(incVnd)}</span>`;
         if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' total transactions';
-        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmt(expYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtVnd(expVnd)}</span>`;
+        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtYen(expYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(expVnd)}</span>`;
         if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' total transactions';
 
         try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
