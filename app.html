@@ -465,6 +465,7 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
                 <h3><span class="material-icons">receipt_long</span> Workflow Board
                     <div class="panel-actions"><button class="btn primary" onclick="openPOModal()"><span class="material-icons">add</span> New PO</button></div>
                 </h3>
+                <div id="po-debug-bar" style="display:none; background:var(--amber); color:#1a1a2e; padding:0.6rem 1rem; border-radius:8px; margin-bottom:0.8rem; font-size:0.85rem; font-weight:600;"></div>
                 <div class="kanban" id="kanban">
                     <div class="kcol" data-status="Preparing"><header><h4><span class="dot prep"></span> Preparing</h4><span class="cnt-pill" id="c-Preparing">0</span></header><div class="lst"></div></div>
                     <div class="kcol" data-status="Delivery"><header><h4><span class="dot deliv"></span> Delivery</h4><span class="cnt-pill" id="c-Delivery">0</span></header><div class="lst"></div></div>
@@ -889,7 +890,12 @@ function refresh() {
             STATE = Object.assign(STATE, data);
             ['vatTimeline','income','expenses','pos','poLines','suppliers','conversions','creditCards','cardTxns','recurring'].forEach(k => { if (!STATE[k]) STATE[k] = []; });
             if (!STATE.settings) STATE.settings = { currencySymbol:'¥', currencyCode:'JPY', vatRate:10 };
+            console.log('[refresh] STATE.pos count:', STATE.pos.length);
+            console.log('[refresh] STATE.pos data:', JSON.stringify(STATE.pos));
             console.log('[refresh] STATE counts: pos='+STATE.pos.length+' suppliers='+STATE.suppliers.length+' income='+STATE.income.length+' expenses='+STATE.expenses.length);
+            if (STATE.pos.length === 0) {
+                console.warn('[refresh] WARNING: pos array is empty! Check PurchaseOrders sheet in Google Sheets.');
+            }
             setSyncStatus('synced');
             renderAll();
         })
@@ -1640,13 +1646,27 @@ function updateBuyPreview() {
 }
 
 function renderPOs() {
-    // Normalise status strings — trim whitespace in case Google Sheets returns padded values
-    const all = (STATE.pos || []).map(p => Object.assign({}, p, { status: String(p.status||'').trim() }));
+    // Normalise status strings - trim whitespace in case Google Sheets returns padded values
+    const raw = STATE.pos || [];
+    const all = raw.map(p => Object.assign({}, p, { status: String(p.status||'').trim() }));
+    console.log('[renderPOs] pos count:', all.length, 'statuses:', all.map(p=>p.status));
+
     const open = all.filter(p => p.status!=='Done').length;
     const outstanding = all.reduce((a,p)=> a + Math.max(0, (Number(p.totalGross)||0) - (Number(p.paidAmount)||0)), 0);
     document.getElementById('p-open').textContent = open;
     document.getElementById('p-pay').textContent = fmt(outstanding);
     document.getElementById('p-total').textContent = all.length;
+
+    // Debug bar: shows raw count so user can tell if data is loading
+    const debugBar = document.getElementById('po-debug-bar');
+    if (debugBar) {
+        if (all.length === 0) {
+            debugBar.style.display = 'block';
+            debugBar.textContent = '⚠️ No PO data loaded. STATE.pos is empty — check that your Google Sheets PurchaseOrders sheet has data, then re-sync.';
+        } else {
+            debugBar.style.display = 'none';
+        }
+    }
 
     ['Preparing','Delivery','Not Payment','Done'].forEach(st => {
         const col = document.querySelector(`.kcol[data-status="${st}"] .lst`);
