@@ -386,8 +386,8 @@ table.tbl { width:100%; border-collapse: collapse; font-size:0.85rem; }
             <div class="kpi-grid">
                 <div class="kpi accent"><div class="lbl"><span class="material-icons">payments</span> Cash on Hand (¥)</div><div class="val" id="k-cash">¥0</div><div class="delta" id="k-cash-sub">liquid yen</div></div>
                 <div class="kpi"><div class="lbl"><span class="material-icons">credit_card</span> Credit Available</div><div class="val" id="k-credit">¥0</div><div class="delta" id="k-credit-sub">¥0 used of ¥0</div></div>
-                <div class="kpi"><div class="lbl"><span class="material-icons">trending_up</span> Income (This Month)</div><div class="val" id="k-inc">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
-                <div class="kpi"><div class="lbl"><span class="material-icons">trending_down</span> Expenses (This Month)</div><div class="val" id="k-exp">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">trending_up</span> Total Income</div><div class="val" id="k-inc" style="line-height:1.2">¥0</div><div class="delta" id="k-inc-cnt">— transactions</div></div>
+                <div class="kpi"><div class="lbl"><span class="material-icons">trending_down</span> Total Expenses</div><div class="val" id="k-exp" style="line-height:1.2">¥0</div><div class="delta" id="k-exp-cnt">— transactions</div></div>
             </div>
 
             <!-- Suppliers ranked by total purchased -->
@@ -1696,10 +1696,20 @@ function renderDashboard() {
             posCount: STATE.pos ? STATE.pos.length : 'null'
         });
         
-        const inc = (STATE.income || []).filter(inMonth);
-        const exp = (STATE.expenses || []).filter(inMonth);
-        const gross = sum(inc,'amountGross');
-        const totalExp = sum(exp,'amountGross');
+        const inc = STATE.income || [];
+        const exp = STATE.expenses || [];
+        
+        let incYen = 0, incVnd = 0;
+        inc.forEach(r => {
+            const amt = Number(r.amountGross) || 0;
+            if ((r.currency || baseCode()) === fxCode()) incVnd += amt; else incYen += amt;
+        });
+        
+        let expYen = 0, expVnd = 0;
+        exp.forEach(r => {
+            const amt = Number(r.amountGross) || 0;
+            if ((r.currency || baseCode()) === fxCode()) expVnd += amt; else expYen += amt;
+        });
         const unpaid = (STATE.pos || []).filter(p => p.status==='Not Payment');
         
         let t = {}, w = {}, cc = {};
@@ -1710,10 +1720,10 @@ function renderDashboard() {
         if (document.getElementById('k-cash-sub')) document.getElementById('k-cash-sub').textContent = `${baseCode()} cash on hand`;
         if (document.getElementById('k-credit')) document.getElementById('k-credit').textContent = fmt(cc.available || 0);
         if (document.getElementById('k-credit-sub')) document.getElementById('k-credit-sub').textContent = `${fmt(cc.used || 0)} used of ${fmt(cc.limit || 0)}`;
-        if (document.getElementById('k-inc')) document.getElementById('k-inc').textContent = fmt(gross);
-        if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' transactions';
-        if (document.getElementById('k-exp')) document.getElementById('k-exp').textContent = fmt(totalExp);
-        if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' transactions';
+        if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmt(incYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtVnd(incVnd)}</span>`;
+        if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' total transactions';
+        if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmt(expYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtVnd(expVnd)}</span>`;
+        if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' total transactions';
 
         try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
 
