@@ -156,20 +156,34 @@ function _sheet(name) {
   return sh;
 }
 
+function _getColMap(sh, expectedHeaders) {
+  const lastCol = sh.getLastColumn();
+  if (lastCol < 1) return { map: {}, actual: [], lastCol: 0 };
+  const actual = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map = {};
+  expectedHeaders.forEach(h => {
+    let idx = actual.indexOf(h);
+    if (idx === -1) idx = actual.findIndex(ah => String(ah).trim().toLowerCase() === String(h).trim().toLowerCase());
+    map[h] = idx;
+  });
+  return { map, actual, lastCol };
+}
+
 function _rows(sheetName) {
   const sh = _sheet(sheetName);
   const last = sh.getLastRow();
   if (last < 2) return [];
-  const headers = HEADERS[sheetName];
-  const lastCol = sh.getLastColumn();
-  const fetchCols = Math.min(headers.length, lastCol);
-  if (fetchCols < 1) return [];
-  const values = sh.getRange(2, 1, last - 1, fetchCols).getValues();
+  const expectedHeaders = HEADERS[sheetName] || [];
+  const { map, lastCol } = _getColMap(sh, expectedHeaders);
+  if (lastCol < 1) return [];
+  
+  const values = sh.getRange(2, 1, last - 1, lastCol).getValues();
   return values.map((row) => {
     const obj = {};
-    headers.forEach((h, i) => {
-      let val = row[i];
-      if (val === undefined || val === null || i >= lastCol) val = "";
+    expectedHeaders.forEach((h) => {
+      const idx = map[h];
+      let val = (idx !== -1 && idx < lastCol) ? row[idx] : "";
+      if (val === undefined || val === null) val = "";
       else if (val instanceof Date) val = val.toISOString();
       obj[h] = val;
     });
@@ -179,24 +193,51 @@ function _rows(sheetName) {
 
 function _appendObject(sheetName, obj) {
   const sh = _sheet(sheetName);
-  const row = HEADERS[sheetName].map((h) => obj[h] !== undefined ? obj[h] : "");
+  const expectedHeaders = HEADERS[sheetName] || [];
+  let { map, actual, lastCol } = _getColMap(sh, expectedHeaders);
+  
+  let colsAdded = false;
+  expectedHeaders.forEach(h => {
+    if (map[h] === -1) {
+      lastCol++;
+      actual.push(h);
+      map[h] = lastCol - 1;
+      sh.getRange(1, lastCol).setValue(h).setFontWeight("bold");
+      colsAdded = true;
+    }
+  });
+
+  const row = new Array(lastCol).fill("");
+  expectedHeaders.forEach(h => {
+    const idx = map[h];
+    if (idx !== -1 && obj[h] !== undefined) row[idx] = obj[h];
+  });
   sh.appendRow(row);
 }
 
 function _updateById(sheetName, idKey, idValue, patch) {
   const sh = _sheet(sheetName);
-  const headers = HEADERS[sheetName];
-  const colIdx = headers.indexOf(idKey) + 1;
+  const expectedHeaders = HEADERS[sheetName] || [];
+  const { map, lastCol } = _getColMap(sh, expectedHeaders);
+  const idIdx = map[idKey];
+  if (idIdx === -1 || lastCol < 1) return false;
+
   const last = sh.getLastRow();
   if (last < 2) return false;
-  const ids = sh.getRange(2, colIdx, last - 1, 1).getValues();
+
+  const ids = sh.getRange(2, idIdx + 1, last - 1, 1).getValues();
   for (let i = 0; i < ids.length; i++) {
     if (String(ids[i][0]) === String(idValue)) {
       const rowNum = i + 2;
-      Object.keys(patch).forEach((k) => {
-        const c = headers.indexOf(k) + 1;
-        if (c > 0) sh.getRange(rowNum, c).setValue(patch[k]);
+      const rowData = sh.getRange(rowNum, 1, 1, lastCol).getValues()[0];
+      
+      expectedHeaders.forEach(h => {
+        const idx = map[h];
+        if (idx !== -1 && patch[h] !== undefined) {
+          rowData[idx] = patch[h];
+        }
       });
+      sh.getRange(rowNum, 1, 1, lastCol).setValues([rowData]);
       return true;
     }
   }
@@ -704,4 +745,4 @@ function resetAllData() {
   return "All transactional data cleared.";
 }
 
-function _deleteRow(sheetName, idKey, idValue) { const sh = _sheet(sheetName); const headers = HEADERS[sheetName]; const colIdx = headers.indexOf(idKey) + 1; const last = sh.getLastRow(); if (last < 2) return false; const ids = sh.getRange(2, colIdx, last - 1, 1).getValues(); for (let i = 0; i < ids.length; i++) { if (String(ids[i][0]) === String(idValue)) { sh.deleteRow(i + 2); return true; } } return false; }
+function _deleteRow(sheetName, idKey, idValue) { const sh = _sheet(sheetName); const expectedHeaders = HEADERS[sheetName] || []; const { map, lastCol } = _getColMap(sh, expectedHeaders); const idIdx = map[idKey]; if (idIdx === -1 || lastCol < 1) return false; const last = sh.getLastRow(); if (last < 2) return false; const ids = sh.getRange(2, idIdx + 1, last - 1, 1).getValues(); for (let i = 0; i < ids.length; i++) { if (String(ids[i][0]) === String(idValue)) { sh.deleteRow(i + 2); return true; } } return false; }
