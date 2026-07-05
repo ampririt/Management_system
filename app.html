@@ -1701,6 +1701,7 @@ function renderDashboard() {
         const exp = STATE.expenses || [];
         
         let incTotalYen = 0, incTotalVnd = 0;
+        let transCount = inc.length;
         inc.forEach(r => {
             const amt = Number(r.amountGross) || 0;
             const c = (r.currency || baseCode()).toUpperCase();
@@ -1714,6 +1715,13 @@ function renderDashboard() {
                 if (baseCode() === 'JPY') { incTotalYen += amt; incTotalVnd += amt * fixedRate(); }
                 else { incTotalVnd += amt; incTotalYen += amt / fixedRate(); }
             }
+        });
+        
+        (STATE.transactions || []).forEach(t => {
+            const amtVnd = Number(t.totalSellVnd) || 0;
+            incTotalVnd += amtVnd;
+            incTotalYen += amtVnd / fixedRate();
+            transCount++;
         });
         
         let expTotalYen = 0, expTotalVnd = 0;
@@ -1746,13 +1754,14 @@ function renderDashboard() {
         const fmtDong = v => '₫' + Math.round(Number(v)||0).toLocaleString();
 
         if (document.getElementById('k-inc')) document.getElementById('k-inc').innerHTML = `${fmtDong(incTotalVnd)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtYen(incTotalYen)}</span>`;
-        if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = inc.length + ' total transactions';
+        if (document.getElementById('k-inc-cnt')) document.getElementById('k-inc-cnt').textContent = transCount + ' total transactions';
         if (document.getElementById('k-exp')) document.getElementById('k-exp').innerHTML = `${fmtYen(expTotalYen)} <br> <span style="font-size:0.75rem; color:var(--text-2); font-weight:500">${fmtDong(expTotalVnd)}</span>`;
         if (document.getElementById('k-exp-cnt')) document.getElementById('k-exp-cnt').textContent = exp.length + ' total transactions';
         
         const marginYen = incTotalYen - expTotalYen;
         const marginVnd = incTotalVnd - expTotalVnd;
-        if (document.getElementById('k-margin')) document.getElementById('k-margin').innerHTML = `${fmtYen(marginYen)} <br> <span style="font-size:0.75rem; color:rgba(255,255,255,0.8); font-weight:500">${fmtDong(marginVnd)}</span>`;
+        const marginPct = incTotalYen > 0 ? ((marginYen / incTotalYen) * 100).toFixed(1) : 0;
+        if (document.getElementById('k-margin')) document.getElementById('k-margin').innerHTML = `${fmtYen(marginYen)} <br> <span style="font-size:0.75rem; color:rgba(255,255,255,0.8); font-weight:500">${fmtDong(marginVnd)} &nbsp;•&nbsp; ${marginPct}%</span>`;
 
         try { renderSupplierRank(); } catch(e) { console.error('renderSupplierRank failed:', e); }
 
@@ -1769,8 +1778,8 @@ function renderDashboard() {
         let months = [];
         try {
             months = last6Months();
-            const bucketVnd = (arr) => months.map(m => {
-                const sum = arr.reduce((total, row) => {
+            const bucketVnd = (arr, transArr) => months.map(m => {
+                let sum = arr.reduce((total, row) => {
                     const rowDate = dstr(row.date);
                     if (rowDate && rowDate.substring(0, 7) === m) {
                         const amt = Number(row.amountGross) || 0;
@@ -1781,11 +1790,20 @@ function renderDashboard() {
                     }
                     return total;
                 }, 0);
+                if (transArr) {
+                    sum += transArr.reduce((tTotal, row) => {
+                        const rowDate = dstr(row.date);
+                        if (rowDate && rowDate.substring(0, 7) === m) {
+                            return tTotal + (Number(row.totalSellVnd) || 0);
+                        }
+                        return tTotal;
+                    }, 0);
+                }
                 return Math.round(sum);
             });
 
-            const bucketYen = (arr) => months.map(m => {
-                const sum = arr.reduce((total, row) => {
+            const bucketYen = (arr, transArr) => months.map(m => {
+                let sum = arr.reduce((total, row) => {
                     const rowDate = dstr(row.date);
                     if (rowDate && rowDate.substring(0, 7) === m) {
                         const amt = Number(row.amountGross) || 0;
@@ -1796,6 +1814,15 @@ function renderDashboard() {
                     }
                     return total;
                 }, 0);
+                if (transArr) {
+                    sum += transArr.reduce((tTotal, row) => {
+                        const rowDate = dstr(row.date);
+                        if (rowDate && rowDate.substring(0, 7) === m) {
+                            return tTotal + ((Number(row.totalSellVnd) || 0) / fixedRate());
+                        }
+                        return tTotal;
+                    }, 0);
+                }
                 return Math.round(sum);
             });
 
@@ -1810,7 +1837,7 @@ function renderDashboard() {
                         { 
                             type: 'line',
                             label: 'Income (₫)',  
-                            data: bucketVnd(STATE.income || []),   
+                            data: bucketVnd(STATE.income || [], STATE.transactions || []),   
                             borderColor: '#10b981', 
                             backgroundColor: 'rgba(16,185,129,0.10)', 
                             tension: 0.4, 
