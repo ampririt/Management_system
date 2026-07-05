@@ -1769,33 +1769,85 @@ function renderDashboard() {
         let months = [];
         try {
             months = last6Months();
-            const bucket = (arr, key) => months.map(m => {
-                return arr.reduce((total, row) => {
+            const bucketVnd = (arr) => months.map(m => {
+                const sum = arr.reduce((total, row) => {
                     const rowDate = dstr(row.date);
                     if (rowDate && rowDate.substring(0, 7) === m) {
-                        return total + (Number(row[key]) || 0);
+                        const amt = Number(row.amountGross) || 0;
+                        const c = (row.currency || baseCode()).toUpperCase();
+                        if (c === 'VND') return total + amt;
+                        if (c === 'JPY') return total + (amt * fixedRate());
+                        return total + (baseCode() === 'JPY' ? amt * fixedRate() : amt);
                     }
                     return total;
                 }, 0);
+                return Math.round(sum);
+            });
+
+            const bucketYen = (arr) => months.map(m => {
+                const sum = arr.reduce((total, row) => {
+                    const rowDate = dstr(row.date);
+                    if (rowDate && rowDate.substring(0, 7) === m) {
+                        const amt = Number(row.amountGross) || 0;
+                        const c = (row.currency || baseCode()).toUpperCase();
+                        if (c === 'JPY') return total + amt;
+                        if (c === 'VND') return total + (amt / fixedRate());
+                        return total + (baseCode() === 'JPY' ? amt : amt / fixedRate());
+                    }
+                    return total;
+                }, 0);
+                return Math.round(sum);
             });
 
             chartUp('trendChart', {
-                type:'line',
+                type: 'bar',
                 data: { 
                     labels: months.map(m => {
                         const [y, mm] = m.split('-');
                         return new Date(y, mm - 1).toLocaleString('default', { month: 'short' });
                     }), 
                     datasets:[
-                        { label:'Income',  data: bucket(STATE.income || [],'amountGross'),   borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.08)', tension:0.4, fill:true },
-                        { label:'Expense', data: bucket(STATE.expenses || [],'amountGross'), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.08)', tension:0.4, fill:true }
+                        { 
+                            type: 'line',
+                            label: 'Income (₫)',  
+                            data: bucketVnd(STATE.income || []),   
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16,185,129,0.10)', 
+                            tension: 0.4, 
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        { 
+                            type: 'bar',
+                            label: 'Expense (¥)', 
+                            data: bucketYen(STATE.expenses || []), 
+                            backgroundColor: '#ef4444', 
+                            borderRadius: 4,
+                            yAxisID: 'y1'
+                        }
                     ]
                 },
                 options: { 
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => (STATE.settings.currencySymbol || '¥') + v.toLocaleString() } } }
+                    scales: { 
+                        y: { 
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true, 
+                            ticks: { callback: v => '₫' + v.toLocaleString() } 
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => '¥' + v.toLocaleString() }
+                        }
+                    }
                 }
             });
 
